@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model user_activity {
+  activity_id     String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?          @db.Uuid
+  vm_id           String?          @db.Uuid
+  activity_type   String
+  description     String?
+  timestamp       DateTime?        @default(now()) @db.Timestamp(6)
+  user_profile    user_profile?    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  virtual_machine virtual_machine? @relation(fields: [vm_id], references: [vm_id], onUpdate: NoAction)
+}
+
+model user_profile {
+  user_id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String            @unique
+  username        String            @unique
+  password        String
+  first_name      String
+  last_name       String
+  user_type       String            @default("User")
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  user_activity   user_activity[]
+  virtual_machine virtual_machine[]
+}
+
+model virtual_machine {
+  vm_id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?         @db.Uuid
+  template_id   String?         @db.Uuid
+  vm_name       String
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?       @default(now()) @db.Timestamp(6)
+  user_activity user_activity[]
+  vm_template   vm_template?    @relation(fields: [template_id], references: [template_id], onUpdate: NoAction)
+  user_profile  user_profile?   @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  vm_event      vm_event[]
+}
+
+model vm_event {
+  event_id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vm_id           String?          @db.Uuid
+  event_type      String
+  description     String?
+  timestamp       DateTime?        @default(now()) @db.Timestamp(6)
+  virtual_machine virtual_machine? @relation(fields: [vm_id], references: [vm_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model vm_template {
+  template_id     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_name   String            @unique
+  cpu             Int
+  ram             Int
+  storage         Int
+  os              String
+  description     String?
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  virtual_machine virtual_machine[]
+}
