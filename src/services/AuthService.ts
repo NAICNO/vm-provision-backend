@@ -1,6 +1,8 @@
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import axios from 'axios'
 import { ErrorMessages } from '../utils/ErrorMessages'
+import * as UserService from './UserService'
+import { UserActivityType } from '../utils/UserActivityType'
 
 export const fetchTokens = async (code: string, nonce: string) => {
 
@@ -23,13 +25,24 @@ export const fetchTokens = async (code: string, nonce: string) => {
 
     const {access_token, id_token, refresh_token} = response.data
     const signedAccessToken = signAccessToken(access_token)
+
+    const decodedIdToken = decodeIdToken(id_token) as JwtPayload
+
+    let userProfile = await UserService.findUserProfileByUsername(decodedIdToken.user)
+
+    if (!userProfile) {
+      userProfile = await UserService.createUserProfileWithIdToken(decodedIdToken)
+    }
+
+    UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS, null)
+
     return {
       accessToken: signedAccessToken,
       idToken: id_token,
       refreshToken: refresh_token,
     }
   } catch (error) {
-    console.error('Error fetching external data:', error)
+    console.error('Error fetching external tokens:', error)
     throw error
   }
 }
@@ -53,6 +66,13 @@ export const refreshTokens = async (refreshToken: string, scope: string) => {
     )
     const {access_token, id_token, refresh_token} = response.data
     const signedAccessToken = signAccessToken(access_token)
+
+    const decodedIdToken = decodeIdToken(id_token) as JwtPayload
+    const userProfile = await UserService.findUserProfileByUsername(decodedIdToken.user)
+    if (!userProfile) {
+      throw new Error(`User not found - ${decodedIdToken.user}`)
+    }
+    UserService.logUserActivity(userProfile.userId, UserActivityType.USER_TOKEN_REFRESHED, null)
     return {
       accessToken: signedAccessToken,
       idToken: id_token,
@@ -60,29 +80,14 @@ export const refreshTokens = async (refreshToken: string, scope: string) => {
     }
   } catch (error) {
     console.error('Cannot refresh token', error)
+    let logData = error instanceof Error ? error.message : ''
+    UserService.logUserActivity('', UserActivityType.USER_TOKEN_REFRESH_FAILED, {message: logData})
     throw new Error(ErrorMessages.TokenRefreshFailed)
   }
 }
 
-function getAuthHeader() {
-  const auth = Buffer.from(`${process.env.AUTH_CLIENT_ID}:${process.env.AUTH_CLIENT_SECRET}`).toString('base64')
-  return `Basic ${auth}`
-}
 
-export const decodeIdToken = (idToken: string) => {
-  return jwt.decode(idToken)
-}
-export const signAccessToken = (accessToken: string) => {
-  const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET
-  if (!accessTokenSecret) {
-    throw new Error(ErrorMessages.TokenSecretNotProvided)
-  }
-
-  const decodedAccessToken = jwt.decode(accessToken) as string
-  return jwt.sign(decodedAccessToken, accessTokenSecret)
-}
-
-export const validateAccessToken = (authHeader: string): string => {
+export const validateAccessToken = async (authHeader: string) => {
   if (!authHeader) {
     throw new Error(ErrorMessages.TokenNotProvided)
   }
@@ -110,16 +115,40 @@ export const validateAccessToken = (authHeader: string): string => {
     }
     const userId = verifiedJwt.id
     console.log('userId', userId)
-    return userId
+    const userProfile = await UserService.findUserProfileByUsername(userId)
+    if (!userProfile) {
+      UserService.logUserActivity(userId, 'USER_LOGIN_FAILED', {message: 'User not found'})
+      throw new Error(ErrorMessages.UserNotFound)
+    }
+    return userProfile
   } catch (err) {
     console.log('err', err)
-    if (err instanceof Error && err.message === ErrorMessages.TokenExpired) {
+    if (err instanceof Error && (err.message === ErrorMessages.TokenExpired || err.message === ErrorMessages.UserNotFound)) {
       throw err
     }
     throw new Error(ErrorMessages.TokenInvalid)
   }
 
 }
+
+function getAuthHeader() {
+  const auth = Buffer.from(`${process.env.AUTH_CLIENT_ID}:${process.env.AUTH_CLIENT_SECRET}`).toString('base64')
+  return `Basic ${auth}`
+}
+
+export const decodeIdToken = (idToken: string) => {
+  return jwt.decode(idToken)
+}
+export const signAccessToken = (accessToken: string) => {
+  const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET
+  if (!accessTokenSecret) {
+    throw new Error(ErrorMessages.TokenSecretNotProvided)
+  }
+
+  const decodedAccessToken = jwt.decode(accessToken) as string
+  return jwt.sign(decodedAccessToken, accessTokenSecret)
+}
+
 
 const validateAccessTokenExpiration = (timestamp: number): boolean => {
   const now = Math.floor(Date.now() / 1000)

@@ -1,7 +1,8 @@
 import { Request } from 'express'
+import { UserProfile } from '@prisma/client'
 
 declare module 'express-serve-static-core' {
   export interface Request {
-    username?: string; // Add your custom property here
+    userProfile?: UserProfile; // Add your custom property here
   }
 }

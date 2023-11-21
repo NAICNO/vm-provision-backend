@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { ErrorMessages } from '../../utils/ErrorMessages'
 
 export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.log('err', err)
   switch (err.message) {
   case ErrorMessages.TokenSecretNotProvided:
     res.status(500).json({message: err.message})
@@ -15,9 +16,14 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
   case ErrorMessages.TokenInvalid:
     res.status(401).json({message: err.message})
     break
-  case ErrorMessages.TokenCannotBeRefreshed:
+  case ErrorMessages.TokenRefreshFailed:
     res.status(403).json({message: err.message})
     break
+  case ErrorMessages.UserNotFound:
+    res.status(404).json({message: err.message})
+    break
+  case ErrorMessages.UserNotAuthorized:
+    res.status(401).json({message: err.message})
   default:
     res.status(500).json({message: ErrorMessages.InternalServerError})
   }

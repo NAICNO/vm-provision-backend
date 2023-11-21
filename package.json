@@ -4,14 +4,19 @@
   "description": "Backend - VM Provisioning",
   "main": "index.ts",
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx tsc && yarn sentry:sourcemaps",
     "start": "node dist/index.js",
     "dev": "concurrently \"npx tsc -w\" \"nodemon dist/index.js\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org uio-ha --project node-express ./dist && sentry-cli sourcemaps upload --org uio-ha --project node-express ./dist"
   },
   "author": "Ashen Wijesiri",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.6.0",
+    "@sentry/cli": "^2.21.5",
+    "@sentry/node": "^7.80.1",
+    "@sentry/profiling-node": "^1.2.6",
     "axios": "^1.6.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

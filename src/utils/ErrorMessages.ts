@@ -1,8 +1,10 @@
 export const ErrorMessages = {
-  TokenSecretNotProvided: 'Server error',
-  TokenNotProvided: 'Token not provided',
+  InternalServerError: 'Internal server error',
   TokenExpired: 'Token expired',
   TokenInvalid: 'Token invalid',
+  TokenNotProvided: 'Token not provided',
   TokenRefreshFailed: 'Token refresh failed',
-  InternalServerError: 'Internal server error',
+  TokenSecretNotProvided: 'Server error',
+  UserNotFound: 'User not found',
+  UserNotAuthorized: 'User unauthorized',
 }

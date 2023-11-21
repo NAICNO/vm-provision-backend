@@ -7,62 +7,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model user_activity {
-  activity_id     String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String?          @db.Uuid
-  vm_id           String?          @db.Uuid
-  activity_type   String
-  description     String?
-  timestamp       DateTime?        @default(now()) @db.Timestamp(6)
-  user_profile    user_profile?    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
-  virtual_machine virtual_machine? @relation(fields: [vm_id], references: [vm_id], onUpdate: NoAction)
+model UserActivity {
+  activityId   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("activity_id")
+  userId       String?   @db.Uuid @map("user_id")
+  vmId         String?   @db.Uuid @map("vm_id")
+  activityType String    @map("activity_type")
+  description  String?
+  timestamp    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("user_activity")
 }
 
-model user_profile {
-  user_id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email           String            @unique
-  username        String            @unique
-  password        String
-  first_name      String
-  last_name       String
-  user_type       String            @default("User")
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
-  user_activity   user_activity[]
-  virtual_machine virtual_machine[]
+model UserProfile {
+  userId        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("user_id")
+  email         String           @unique
+  username      String           @unique
+  password      String
+  firstName     String           @map("first_name")
+  lastName      String           @map("last_name")
+  userType      String           @default("User") @map("user_type")
+  createdAt     DateTime?        @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt     DateTime?        @default(now()) @db.Timestamp(6) @map("updated_at")
+  virtualMachines VirtualMachine[]
+
+  @@map("user_profile")
 }
 
-model virtual_machine {
-  vm_id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String?         @db.Uuid
-  template_id   String?         @db.Uuid
-  vm_name       String
-  created_at    DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at    DateTime?       @default(now()) @db.Timestamp(6)
-  user_activity user_activity[]
-  vm_template   vm_template?    @relation(fields: [template_id], references: [template_id], onUpdate: NoAction)
-  user_profile  user_profile?   @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
-  vm_event      vm_event[]
+model VirtualMachine {
+  vmId          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("vm_id")
+  userId        String?        @db.Uuid @map("user_id")
+  templateId    String?        @db.Uuid @map("template_id")
+  vmName        String         @map("vm_name")
+  ipv4Address   String?        @map("ipv4_address")
+  ipv6Address   String?        @map("ipv6_address")
+  status        String?        @map("status")
+  createdAt     DateTime?      @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt     DateTime?      @default(now()) @db.Timestamp(6) @map("updated_at")
+  vmTemplate    VmTemplate?    @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
+  userProfile   UserProfile?   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  vmEvents      VmEvent[]
+
+  @@map("virtual_machine")
 }
 
-model vm_event {
-  event_id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  vm_id           String?          @db.Uuid
-  event_type      String
-  description     String?
-  timestamp       DateTime?        @default(now()) @db.Timestamp(6)
-  virtual_machine virtual_machine? @relation(fields: [vm_id], references: [vm_id], onDelete: Cascade, onUpdate: NoAction)
+model VmEvent {
+  eventId        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("event_id")
+  vmId           String?         @db.Uuid @map("vm_id")
+  eventType      String          @map("event_type")
+  description    String?
+  timestamp      DateTime?       @default(now()) @db.Timestamp(6)
+  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("vm_event")
 }
 
-model vm_template {
-  template_id     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  template_name   String            @unique
-  cpu             Int
-  ram             Int
-  storage         Int
-  os              String
-  description     String?
-  created_at      DateTime?         @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
-  virtual_machine virtual_machine[]
+model VmTemplate {
+  templateId      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("template_id")
+  templateName    String           @unique @map("template_name")
+  cpu             Int              @map("cpu")
+  ram             Int              @map("ram")
+  storage         Int              @map("storage")
+  os              String           @map("os")
+  description     String?          @map("description")
+  createdAt       DateTime?        @default(now()) @db.Timestamp(6) @map("created_at")
+  updatedAt       DateTime?        @default(now()) @db.Timestamp(6) @map("updated_at")
+  virtualMachines VirtualMachine[]
+
+  @@map("vm_template")
 }
