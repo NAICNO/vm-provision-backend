@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { ErrorMessages } from '../../utils/ErrorMessages'
 
 export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.log('err', err)
+  console.log('Error - Middleware', err)
   switch (err.message) {
   case ErrorMessages.TokenSecretNotProvided:
     res.status(500).json({message: err.message})
@@ -24,6 +24,7 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
     break
   case ErrorMessages.UserNotAuthorized:
     res.status(401).json({message: err.message})
+    break
   default:
     res.status(500).json({message: ErrorMessages.InternalServerError})
   }

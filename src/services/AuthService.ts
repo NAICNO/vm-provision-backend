@@ -80,7 +80,7 @@ export const refreshTokens = async (refreshToken: string, scope: string) => {
     }
   } catch (error) {
     console.error('Cannot refresh token', error)
-    let logData = error instanceof Error ? error.message : ''
+    const logData = error instanceof Error ? error.message : ''
     UserService.logUserActivity('', UserActivityType.USER_TOKEN_REFRESH_FAILED, {message: logData})
     throw new Error(ErrorMessages.TokenRefreshFailed)
   }
@@ -123,12 +123,14 @@ export const validateAccessToken = async (authHeader: string) => {
     return userProfile
   } catch (err) {
     console.log('err', err)
+    if (err instanceof Error && err.message === 'TokenExpiredError: jwt expired') {
+      throw new Error(ErrorMessages.TokenExpired)
+    }
     if (err instanceof Error && (err.message === ErrorMessages.TokenExpired || err.message === ErrorMessages.UserNotFound)) {
       throw err
     }
     throw new Error(ErrorMessages.TokenInvalid)
   }
-
 }
 
 function getAuthHeader() {

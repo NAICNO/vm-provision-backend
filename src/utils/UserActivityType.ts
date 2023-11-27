@@ -7,6 +7,7 @@ export const UserActivityType = {
   USER_UPDATED: 'UserUpdated',
   USER_TOKEN_REFRESHED: 'UserTokenRefreshed',
   USER_TOKEN_REFRESH_FAILED: 'UserTokenRefreshFailed',
+  VM_CREATION_REQUESTED: 'VmCreationRequested',
 }
 
 export type UserActivityType = typeof UserActivityType[keyof typeof UserActivityType]

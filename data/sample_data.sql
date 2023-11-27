@@ -7,8 +7,8 @@ VALUES
 -- Insert sample data into vm_template
 INSERT INTO vm_template (template_name, cpu, ram, storage, os)
 VALUES
-    ('Basic', 2, 2048, 50, 'Linux'),
-    ('Pro', 4, 4096, 100, 'Windows');
+    ('Basic', 2, 2, 50, 'Linux'),
+    ('Pro', 4, 4, 100, 'Windows');
 
 -- Insert sample data into virtual_machine
 INSERT INTO virtual_machine (user_id, template_id, vm_name, ipv4_address, ipv6_address, status)

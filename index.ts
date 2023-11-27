@@ -45,29 +45,6 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Hello World')
 })
 
-app.get('/api/ssh/:name', (req: Request, res: Response) => {
-  generateKeyPair('rsa', {
-    modulusLength: 4096,
-    publicKeyEncoding: {
-      type: 'spki',
-      format: 'pem',
-    },
-    privateKeyEncoding: {
-      type: 'pkcs8',
-      format: 'pem',
-    },
-  }, (err, publicKey, privateKey) => {
-    // Handle errors and use the generated key pair.
-    console.log('err', err)
-    console.log('publicKey', publicKey)
-    console.log('privateKey', privateKey)
-    res.json({
-      publicKey: publicKey,
-      privateKey: privateKey
-    })
-  })
-})
-
 app.use(Sentry.Handlers.errorHandler())
 app.use(handleError)
 
