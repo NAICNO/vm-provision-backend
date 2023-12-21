@@ -4,7 +4,6 @@ import * as SshKeyService from '../../services/SshKeyService'
 
 export const getAllUserVms = async (req: Request, res: Response) => {
   const userProfile = req.userProfile
-  console.log('userProfile', userProfile)
   const machines = await VmService.getAllUserVms(userProfile?.userId)
   res.json(machines)
 }
@@ -14,12 +13,12 @@ export const getVmTemplates = async (req: Request, res: Response) => {
   res.json(vmTemplates)
 }
 
-export const createVm = async (req: Request, res: Response) => {
+export const startVmProvisioning = async (req: Request, res: Response) => {
   const userProfile = req.userProfile
   const vmName = req.body.vmName
   const vmTemplateId = req.body.vmTemplateId
   const sshKeyId = req.body.sshKeyId
-  const vmData = await VmService.createVm(userProfile?.userId, vmName, vmTemplateId, sshKeyId)
+  const vmData = await VmService.startVmProvisioning(userProfile?.userId, vmName, vmTemplateId, sshKeyId)
   res.json(vmData)
 }
 

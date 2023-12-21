@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_GCP")
 }
 
 model UserActivity {
@@ -30,25 +30,28 @@ model UserProfile {
   updatedAt       DateTime?        @default(now()) @map("updated_at") @db.Timestamp(6)
   virtualMachines VirtualMachine[]
   publicKeys      VmPublicKey[]
+  messages        Message[]
 
   @@map("user_profile")
 }
 
 model VirtualMachine {
-  vmId        String       @id @default(dbgenerated("gen_random_uuid()")) @map("vm_id") @db.Uuid
-  userId      String?      @map("user_id") @db.Uuid
-  templateId  String?      @map("template_id") @db.Uuid
-  vmName      String       @map("vm_name")
-  ipv4Address String?      @map("ipv4_address")
-  ipv6Address String?      @map("ipv6_address")
-  status      String?      @map("status")
-  createdAt   DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt   DateTime?    @default(now()) @map("updated_at") @db.Timestamp(6)
-  publicKeyId String?      @map("public_key_id") @db.Uuid
-  publicKey   VmPublicKey? @relation(fields: [publicKeyId], references: [keyId])
-  vmTemplate  VmTemplate?  @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
-  userProfile UserProfile? @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
-  vmEvents    VmEvent[]
+  vmId         String         @id @default(dbgenerated("gen_random_uuid()")) @map("vm_id") @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  templateId   String?        @map("template_id") @db.Uuid
+  vmName       String         @map("vm_name")
+  ipv4Address  String?        @map("ipv4_address")
+  ipv6Address  String?        @map("ipv6_address")
+  status       String?        @map("status")
+  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime?      @default(now()) @map("updated_at") @db.Timestamp(6)
+  publicKeyId  String?        @map("public_key_id") @db.Uuid
+  publicKey    VmPublicKey?   @relation(fields: [publicKeyId], references: [keyId])
+  vmTemplate   VmTemplate?    @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
+  userProfile  UserProfile?   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  vmEvents     VmEvent[]
+  messages     Message[]
+  ProvisionLog ProvisionLog[]
 
   @@map("virtual_machine")
 }
@@ -67,6 +70,8 @@ model VmEvent {
 model VmTemplate {
   templateId      String           @id @default(dbgenerated("gen_random_uuid()")) @map("template_id") @db.Uuid
   templateName    String           @unique @map("template_name")
+  falvorName      String           @default("") @map("flavor_name")
+  providerId      String           @map("provider_id") @db.Uuid
   cpu             Int              @map("cpu")
   ram             Int              @map("ram")
   storage         Int              @map("storage")
@@ -75,8 +80,20 @@ model VmTemplate {
   createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?        @default(now()) @map("updated_at") @db.Timestamp(6)
   virtualMachines VirtualMachine[]
+  provider        Provider         @relation(fields: [providerId], references: [providerId], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("vm_template")
+}
+
+model Provider {
+  providerId   String       @id @default(dbgenerated("gen_random_uuid()")) @map("provider_id") @db.Uuid
+  providerName String       @unique @map("provider_name")
+  description  String?      @map("description")
+  createdAt    DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime?    @default(now()) @map("updated_at") @db.Timestamp(6)
+  VmTemplate   VmTemplate[]
+
+  @@map("provider")
 }
 
 model VmPublicKey {
@@ -90,4 +107,31 @@ model VmPublicKey {
   userProfile     UserProfile?     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("vm_public_key")
+}
+
+model Message {
+  messageId      String          @id @default(dbgenerated("gen_random_uuid()")) @map("message_id") @db.Uuid
+  queueName      String          @map("queue_name")
+  message        String          @map("message")
+  userId         String?         @map("user_id") @db.Uuid
+  vmId           String?         @map("vm_id") @db.Uuid
+  metadata       String?         @map("metadata")
+  status         String          @map("status")
+  createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime?       @default(now()) @map("updated_at") @db.Timestamp(6)
+  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
+  userProfile    UserProfile?    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("message")
+}
+
+model ProvisionLog {
+  logId          String          @id @default(dbgenerated("gen_random_uuid()")) @map("log_id") @db.Uuid
+  queueName      String          @map("queue_name")
+  vmId           String?         @map("vm_id") @db.Uuid
+  logMessage     Json            @map("log_message")
+  timestamp      DateTime        @default(now()) @db.Timestamp(6)
+  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("provision_log")
 }

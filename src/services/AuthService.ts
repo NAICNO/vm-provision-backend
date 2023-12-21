@@ -43,7 +43,8 @@ export const fetchTokens = async (code: string, nonce: string) => {
     }
   } catch (error) {
     console.error('Error fetching external tokens:', error)
-    throw error
+    throw new Error(ErrorMessages.TokenCannotBeObtained)
+
   }
 }
 
@@ -133,7 +134,22 @@ export const validateAccessToken = async (authHeader: string) => {
   }
 }
 
-function getAuthHeader() {
+export const validateApiKey = async (apiKey: string) => {
+  if (!apiKey) {
+    throw new Error(ErrorMessages.ApiKeyNotProvided)
+  }
+
+  const apiKeySecret = process.env.AUTH_API_KEY_SECRET
+  if (!apiKeySecret) {
+    throw new Error(ErrorMessages.InternalServerError)
+  }
+
+  if (apiKey !== apiKeySecret) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+}
+
+const getAuthHeader = () => {
   const auth = Buffer.from(`${process.env.AUTH_CLIENT_ID}:${process.env.AUTH_CLIENT_SECRET}`).toString('base64')
   return `Basic ${auth}`
 }

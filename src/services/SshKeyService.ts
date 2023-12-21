@@ -1,6 +1,10 @@
+import { generateKeyPairSync, KeyPairSyncResult } from 'crypto'
+import sshpk from 'sshpk'
+
 import { prisma } from '../models/PrismaClient'
 import { ErrorMessages } from '../utils/ErrorMessages'
-import { generateKeyPairSync, KeyPairSyncResult } from 'crypto'
+import { VmPublicKey } from '@prisma/client'
+import * as Sentry from '@sentry/node'
 
 export const getAllUserSshKeys = async (userId: string | undefined) => {
   if (!userId) {
@@ -18,12 +22,14 @@ export const createSSHKeyPair = async (userId: string | undefined, name: string)
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
 
-  const {publicKey, privateKey} = generateSshKeyPair()
+  const {publicKey, privateKey} = generateKeyPair()
+
+  const sshPublicKey = convertPemToSSH(publicKey)
 
   const stored = await prisma.vmPublicKey.create({
     data: {
       name: name,
-      publicKey: publicKey,
+      publicKey: sshPublicKey.toString(),
       userId: userId,
     },
   })
@@ -35,7 +41,28 @@ export const createSSHKeyPair = async (userId: string | undefined, name: string)
 
 }
 
-const generateSshKeyPair = (): KeyPairSyncResult<string, string> => {
+export const findPublicKey = async (publicKeyId: string): Promise<VmPublicKey> => {
+  try {
+    return await prisma.vmPublicKey.findUniqueOrThrow({
+      where: {
+        keyId: publicKeyId,
+      },
+    })
+  } catch (e) {
+    const error = new Error(ErrorMessages.InternalServerError)
+    Sentry.captureException(error, {
+      contexts: {
+        message: {
+          sshKeyId: publicKeyId,
+          message: 'Public key not found'
+        }
+      }
+    })
+    throw error
+  }
+}
+
+const generateKeyPair = (): KeyPairSyncResult<string, string> => {
   return generateKeyPairSync('rsa', {
     modulusLength: 4096,
     publicKeyEncoding: {
@@ -49,3 +76,7 @@ const generateSshKeyPair = (): KeyPairSyncResult<string, string> => {
   })
 }
 
+const convertPemToSSH = (pemKey: string) => {
+  const key = sshpk.parseKey(pemKey, 'pem')
+  return key.toString('ssh')
+}

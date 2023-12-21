@@ -43,7 +43,6 @@ export const createUserProfile = async (user: Omit<UserProfile, 'userId' | 'crea
 
 export const logUserActivity = (userId: string, activityType: UserActivityType, data: any) => {
   const description = data ? JSON.stringify(data) : ''
-  console.log('logUserActivity', userId, activityType, description)
   prisma.userActivity.create({
     data: {
       userId: userId,
@@ -51,8 +50,6 @@ export const logUserActivity = (userId: string, activityType: UserActivityType, 
       activityType: activityType.toString(),
       description: description,
     },
-  }).then(() => {
-    console.log('User activity logged', userId, activityType, description)
   })
 }
 
