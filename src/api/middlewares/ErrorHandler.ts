@@ -19,11 +19,20 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
   case ErrorMessages.TokenRefreshFailed:
     res.status(403).json({message: err.message})
     break
+  case ErrorMessages.TokenCannotBeObtained:
+    res.status(403).json({message: err.message})
+    break
   case ErrorMessages.UserNotFound:
     res.status(404).json({message: err.message})
     break
   case ErrorMessages.UserNotAuthorized:
     res.status(401).json({message: err.message})
+    break
+  case ErrorMessages.ApiKeyNotProvided:
+    res.status(401).json({message: err.message})
+    break
+  case ErrorMessages.CannotCreateVmDueToServerError:
+    res.status(503).json({message: err.message})
     break
   default:
     res.status(500).json({message: ErrorMessages.InternalServerError})

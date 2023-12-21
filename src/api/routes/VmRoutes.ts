@@ -1,6 +1,6 @@
 import express from 'express'
 import {
-  createSSHKeyPair, createVm,
+  createSSHKeyPair, startVmProvisioning,
   getAllUserVms,
   getPublicKeys,
   getVmTemplates
@@ -14,6 +14,7 @@ router.get('/', getAllUserVms)
 router.get('/templates', getVmTemplates)
 router.get('/ssh/keys', getPublicKeys)
 router.post('/ssh/create', createSSHKeyPair)
-router.post('/create', createVm)
+router.post('/create', startVmProvisioning)
 
 export default router
+

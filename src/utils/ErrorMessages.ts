@@ -5,6 +5,9 @@ export const ErrorMessages = {
   TokenNotProvided: 'Token not provided',
   TokenRefreshFailed: 'Token refresh failed',
   TokenSecretNotProvided: 'Server error',
+  TokenCannotBeObtained: 'Token cannot be obtained',
   UserNotFound: 'User not found',
   UserNotAuthorized: 'User unauthorized',
+  CannotCreateVmDueToServerError: 'Cannot create VM due to server error',
+  ApiKeyNotProvided: 'API key not provided',
 }
