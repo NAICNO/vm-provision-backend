@@ -5,17 +5,12 @@ import { prisma } from '../models/PrismaClient'
 import { MessagePublishStatus } from '../utils/MessagePublishStatus'
 import { Message, PrismaClient } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
-import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
 
-export const publishCreateVmRequest = async (message: Message) => {
-  await publishMessage(VM_PROVISIONING_REQUESTS_QUEUE, message)
-}
-
-const publishMessage = async (queue: string, message: Message) => {
+export const publishMessage = async (queueName: string, message: Message) => {
   if (isChannelOpen && channel) {
     try {
-      await channel.assertQueue(queue, {durable: true})
-      const sent = channel.sendToQueue(queue, Buffer.from(message.message),
+      await channel.assertQueue(queueName, {durable: true})
+      const sent = channel.sendToQueue(queueName, Buffer.from(message.message),
         {
           persistent: true,
         })

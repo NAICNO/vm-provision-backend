@@ -1,6 +1,8 @@
 export default interface VmProvisioningRequestPayload {
   vm_id: string
-  tf_vars: {
+  provider: string
+  action: string
+  tf_vars?: {
     vm_id: string
     vm_name : string
     public_key: string

@@ -13,6 +13,7 @@ import messageRoutes from './src/api/routes/MessageRoute'
 import { handleError } from './src/api/middlewares/ErrorHandler'
 import { connectToRabbitMQ } from './src/utils/QueueUtils'
 import { initializeSentry } from './src/utils/Utils'
+import { setupCronJobs } from './src/workers/cron'
 
 dotenv.config()
 
@@ -40,6 +41,8 @@ app.use(Sentry.Handlers.errorHandler())
 app.use(handleError)
 
 connectToRabbitMQ()
+
+setupCronJobs()
 
 server.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`)

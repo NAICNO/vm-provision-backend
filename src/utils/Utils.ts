@@ -32,3 +32,14 @@ export const initializeSentry = (app: Express) => {
     profilesSampleRate: 1.0,
   })
 }
+
+export const getFolderNameForProvider = (providerName: string) => {
+  if (providerName.toLowerCase() === 'nrec') {
+    return 'nrec'
+  } else if (providerName.toLowerCase() === 'google cloud') {
+    return 'google-cloud'
+  } else if (providerName.toLowerCase() === 'aws') {
+    return 'aws'
+  }
+  return 'nrec'
+}

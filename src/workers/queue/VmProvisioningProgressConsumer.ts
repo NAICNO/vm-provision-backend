@@ -2,14 +2,15 @@ import dotenv from 'dotenv'
 import path from 'path'
 import axios from 'axios'
 import * as Sentry from '@sentry/node'
-import { channel, connectToRabbitMQ } from '../utils/QueueUtils'
-import { VM_PROVISIONING_PROGRESS_QUEUE } from '../utils/Constants'
+import { channel, connectToRabbitMQ } from '../../utils/QueueUtils'
+import { VM_PROVISIONING_PROGRESS_QUEUE } from '../../utils/Constants'
 
 
 dotenv.config({path: path.resolve(__dirname, '../../.env')})
 
 interface ProgressMessage {
   vm_id: string
+  action: string
   message: any
 }
 
@@ -38,10 +39,12 @@ async function consume() {
         const progressMessage = JSON.parse(messageString) as ProgressMessage
 
         const vmId = progressMessage.vm_id
+        const action = progressMessage.action
         const tfLogMessage = progressMessage.message
 
         const result = await axiosInstance.post('', {
           vmId: vmId,
+          action: action,
           queueName: VM_PROVISIONING_PROGRESS_QUEUE,
           message: tfLogMessage
         })

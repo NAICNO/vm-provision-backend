@@ -18,7 +18,8 @@ export const startVmProvisioning = async (req: Request, res: Response) => {
   const vmName = req.body.vmName
   const vmTemplateId = req.body.vmTemplateId
   const sshKeyId = req.body.sshKeyId
-  const vmData = await VmService.startVmProvisioning(userProfile?.userId, vmName, vmTemplateId, sshKeyId)
+  const duration = req.body.duration
+  const vmData = await VmService.startVmProvisioning(userProfile?.userId, vmName, vmTemplateId, sshKeyId, duration)
   res.json(vmData)
 }
 

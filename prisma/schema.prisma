@@ -37,18 +37,20 @@ model UserProfile {
 
 model VirtualMachine {
   vmId         String         @id @default(dbgenerated("gen_random_uuid()")) @map("vm_id") @db.Uuid
-  userId       String        @map("user_id") @db.Uuid
-  templateId   String?        @map("template_id") @db.Uuid
+  userId       String         @map("user_id") @db.Uuid
+  templateId   String         @map("template_id") @db.Uuid
   vmName       String         @map("vm_name")
   ipv4Address  String?        @map("ipv4_address")
   ipv6Address  String?        @map("ipv6_address")
   status       String?        @map("status")
-  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt    DateTime?      @default(now()) @map("updated_at") @db.Timestamp(6)
-  publicKeyId  String?        @map("public_key_id") @db.Uuid
-  publicKey    VmPublicKey?   @relation(fields: [publicKeyId], references: [keyId])
-  vmTemplate   VmTemplate?    @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
-  userProfile  UserProfile?   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
+  publicKeyId  String         @map("public_key_id") @db.Uuid
+  duration     Int            @map("duration")
+  startedAt    DateTime?      @map("started_at") @db.Timestamp(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
+  publicKey    VmPublicKey    @relation(fields: [publicKeyId], references: [keyId])
+  vmTemplate   VmTemplate     @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
+  userProfile  UserProfile    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   vmEvents     VmEvent[]
   messages     Message[]
   ProvisionLog ProvisionLog[]
@@ -69,7 +71,7 @@ model VmEvent {
 
 model VmTemplate {
   templateId      String           @id @default(dbgenerated("gen_random_uuid()")) @map("template_id") @db.Uuid
-  templateName    String           @unique @map("template_name")
+  templateName    String           @map("template_name")
   falvorName      String           @default("") @map("flavor_name")
   providerId      String           @map("provider_id") @db.Uuid
   cpu             Int              @map("cpu")
@@ -129,6 +131,7 @@ model ProvisionLog {
   logId          String          @id @default(dbgenerated("gen_random_uuid()")) @map("log_id") @db.Uuid
   queueName      String          @map("queue_name")
   vmId           String?         @map("vm_id") @db.Uuid
+  action         String          @map("action")
   logMessage     Json            @map("log_message")
   timestamp      DateTime        @default(now()) @db.Timestamp(6)
   virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)

@@ -10,6 +10,7 @@ export interface TFProgressLog {
   changes?: TerraformChangeSummary;
   outputs?: TerraformOutputs;
   hook?: TerraformHook;
+  metadata?: any;
 }
 
 interface TerraformChange {

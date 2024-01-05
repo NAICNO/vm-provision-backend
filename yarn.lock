@@ -873,6 +873,11 @@ cors@^2.8.5, cors@~2.8.5:
     object-assign "^4"
     vary "^1"
 
+croner@^8.0.0:
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/croner/-/croner-8.0.0.tgz#1652fea11a839e6c7ffe79366932318d19756508"
+  integrity sha512-NhZ7wV9L0nxbSJKYp6u+OHCytFv4RlCu0O6GsglJIZMpMqmtb0kcNNPS5lv1O8qclhDA1NffLSsGx2ftbWQamw==
+
 cross-spawn@^7.0.2:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-7.0.3.tgz#f73a85b9d5d41d045551c177e2882d4ac85728a6"
