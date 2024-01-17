@@ -12,11 +12,11 @@ import { VmEventType } from '../utils/VmEventType'
 import { ALLOWED_IP_RANGES, VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
-import { TFProgressLog } from '../types/TFProgressLog'
 import { GenericResponse } from '../types/GenericResponse'
 import { getIoInstance, getSocketIdByUsername } from '../sockets'
 import { WebSocketEventType } from '../utils/WebSocketEventType'
 import { getFolderNameForProvider } from '../utils/Utils'
+import * as LogService from './LogService'
 
 export const getAllUserVms = async (userId: string | undefined) => {
   if (!userId) {
@@ -120,10 +120,13 @@ export const startVmProvisioning = async (userId: string | undefined, vmName: st
 
 export const startVmDestroy = async (vm: VirtualMachine) => {
 
+  const template = await getVmTemplateById(vm.templateId)
+  const provider = await getProviderById(template.providerId)
+
   const {
     queueName,
     message
-  } = await destroyVmInTransaction(vm)
+  } = await destroyVmInTransaction(vm, provider)
 
   UserService.logUserActivity(vm.userId, UserActivityType.VM_DESTROY_REQUESTED, {vmId: vm.vmId})
   logVmEvent(vm.vmId, VmEventType.DESTROYING_REQUESTED, null)
@@ -164,7 +167,7 @@ async function createVmInTransaction(
   })
 }
 
-async function destroyVmInTransaction(vm: VirtualMachine):
+async function destroyVmInTransaction(vm: VirtualMachine, provider: Provider):
   Promise<{
     queueName: string,
     message: Message
@@ -187,7 +190,7 @@ async function destroyVmInTransaction(vm: VirtualMachine):
 
     console.log('updatedVm', updatedVm)
 
-    const messageToPublish = prepareVmDestroyRequestMessage(vm.vmId)
+    const messageToPublish = prepareVmDestroyRequestMessage(vm.vmId, provider)
     const messageToPublishString = JSON.stringify(messageToPublish)
 
     const message = await MessageQueueService
@@ -216,9 +219,9 @@ export const logVmEvent = (vmId: string, eventType: VmEventType, data: any) => {
 
 export const updateVmProvisioningStatus = async (vmId: string, action: string, queueName: string, message: any): Promise<GenericResponse> => {
 
-  await createProvisionLog(vmId, action, queueName, message)
+  await LogService.createProvisionLog(vmId, action, queueName, message)
 
-  const log = toTFProgressLog(message)
+  const log = LogService.convertToTFProgressLog(message)
   if (!log) {
     console.error('Invalid message received', message)
     return GenericResponse.error
@@ -234,14 +237,9 @@ export const updateVmProvisioningStatus = async (vmId: string, action: string, q
   const {
     status: statusFromLog,
     ip: ipFromLog
-  } = findStatusFromProvisionLog(log, action)
+  } = LogService.findStatusFromProvisionLog(log, action)
 
-  let nextStatus
-  if (action === 'DESTROY') {
-    nextStatus = currentStatus
-  } else {
-    nextStatus = findNextVmState(currentStatus, statusFromLog)
-  }
+  const nextStatus = findNextVmState(currentStatus, statusFromLog)
 
   if (nextStatus === currentStatus) {
     console.log('No status change', currentStatus, nextStatus)
@@ -299,76 +297,11 @@ export const getExpiredVms = async () => {
   })
 }
 
-const createProvisionLog = async (vmId: string, action: string, queueName: string, logMessage: any) => {
-  return prisma.provisionLog.create({
-    data: {
-      vmId: vmId,
-      action: action,
-      queueName: queueName,
-      logMessage: logMessage
-    }
-  })
-}
-
-const findStatusFromProvisionLog = (log: TFProgressLog, action: string): {
-  status: VmStatusType,
-  ip: string | undefined
-} => {
-  let status = VmStatusType.UNKNOWN
-  let ip: string | undefined = undefined
-
-  const logType = log.type
-  const initiatedTypes = ['version']
-  if (initiatedTypes.includes(logType)) {
-    status = VmStatusType.TO_BE_PROVISIONED
-  }
-
-  const planningTypes = ['planned_change']
-  if (planningTypes.includes(logType)) {
-    status = VmStatusType.PLANNING
-  }
-
-  const planningCompletedTypes = ['change_summary']
-  if (planningCompletedTypes.includes(logType)) {
-    status = VmStatusType.PLANNING_COMPLETED
-  }
-
-  const provisioningTypes = ['apply_start', 'apply_progress', 'apply_complete']
-  if (provisioningTypes.includes(logType)) {
-    status = VmStatusType.PROVISIONING
-  }
-
-  if (logType === 'outputs') {
-    if (log.outputs?.vm_provision_status?.value === VmStatusType.PROVISIONING_COMPLETED) {
-      status = VmStatusType.PROVISIONING_COMPLETED
-      ip = log.outputs?.vm_ip?.value || undefined
-    }
-  }
-  return {status, ip}
-}
-
 const findNextVmState = (currentStatus: VmStatusType, nextStatus: VmStatusType): VmStatusType => {
   return validNextStates[currentStatus].includes(nextStatus) ? nextStatus : currentStatus
 }
 
-function toTFProgressLog(obj: any): TFProgressLog | null {
-  try {
-    if (typeof obj['@level'] !== 'string'
-      || typeof obj['@message'] !== 'string'
-      || typeof obj['@module'] !== 'string'
-      || typeof obj['@timestamp'] !== 'string'
-      || typeof obj['type'] !== 'string'
-    ) {
-      throw new Error('Invalid object structure')
-    }
 
-    // If all checks pass, cast the object and return
-    return obj as TFProgressLog
-  } catch (error) {
-    console.error('Error converting object to TerraformLog:', error)
-    return null // or handle the error as appropriate
-  }
-}
 
 export const getVmById = async (vmId: string) => {
   return prisma.virtualMachine.findUnique({
@@ -453,9 +386,11 @@ const getProviderById = async (providerId: string) => {
   }
 }
 
-const prepareVmDestroyRequestMessage = (vmId: string): VmProvisioningRequestPayload => {
+const prepareVmDestroyRequestMessage = (vmId: string, provider: Provider): VmProvisioningRequestPayload => {
+  const folderName = getFolderNameForProvider(provider.providerName)
   return {
     vm_id: vmId,
+    provider: folderName,
     action: 'DESTROY'
   }
 }

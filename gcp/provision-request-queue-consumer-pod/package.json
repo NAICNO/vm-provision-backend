@@ -1,0 +1,21 @@
+{
+  "name": "vm-request-queue-consumer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "amqplib": "^0.10.3",
+    "fs-extra": "^11.2.0",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.1",
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
+    "@typescript-eslint/parser": "^6.8.0",
+    "eslint": "^8.51.0",
+    "typescript": "^5.3.2"
+  }
+}
