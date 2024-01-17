@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/node'
 import { channel, connectToRabbitMQ } from '../../utils/QueueUtils'
 import { VM_PROVISIONING_PROGRESS_QUEUE } from '../../utils/Constants'
 
-
 dotenv.config({path: path.resolve(__dirname, '../../.env')})
 
 interface ProgressMessage {

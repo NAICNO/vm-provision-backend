@@ -1,0 +1,119 @@
+import { prisma } from '../models/PrismaClient'
+import { TFProgressLog } from '../types/TFProgressLog'
+import { VmStatusType } from '../utils/VmStatusType'
+
+export const createProvisionLog = async (vmId: string, action: string, queueName: string, logMessage: any) => {
+  return prisma.provisionLog.create({
+    data: {
+      vmId: vmId,
+      action: action,
+      queueName: queueName,
+      logMessage: logMessage
+    }
+  })
+}
+
+export const convertToTFProgressLog = (obj: any): TFProgressLog | null => {
+  try {
+    if (typeof obj['@level'] !== 'string'
+      || typeof obj['@message'] !== 'string'
+      || typeof obj['@module'] !== 'string'
+      || typeof obj['@timestamp'] !== 'string'
+      || typeof obj['type'] !== 'string'
+    ) {
+      throw new Error('Invalid object structure')
+    }
+
+    // If all checks pass, cast the object and return
+    return obj as TFProgressLog
+  } catch (error) {
+    console.error('Error converting object to TerraformLog:', error)
+    return null // or handle the error as appropriate
+  }
+}
+
+export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): {
+  status: VmStatusType,
+  ip: string | undefined
+} => {
+  let status = VmStatusType.UNKNOWN
+  let ip: string | undefined = undefined
+
+  const logType = log.type
+  const initiatedTypes = ['version']
+  if (initiatedTypes.includes(logType)) {
+    switch (action) {
+    case 'CREATE':
+      status = VmStatusType.TO_BE_PROVISIONED
+      break
+    case 'DESTROY':
+      status = VmStatusType.TO_BE_DESTROYED
+      break
+    }
+  }
+
+  const refreshTypes = ['refresh_start', 'refresh_complete']
+  if (refreshTypes.includes(logType)) {
+    switch (action) {
+    case 'DESTROY':
+      status = VmStatusType.TO_BE_DESTROYED
+      break
+    }
+  }
+
+  const planningTypes = ['planned_change']
+  if (planningTypes.includes(logType)) {
+    switch (action) {
+    case 'CREATE':
+      status = VmStatusType.PLANNING
+      break
+    case 'DESTROY':
+      status = VmStatusType.TO_BE_DESTROYED
+      break
+    }
+  }
+
+  const planningCompletedTypes = ['change_summary']
+  if (planningCompletedTypes.includes(logType)) {
+    switch (action) {
+    case 'CREATE':
+      status = VmStatusType.PLANNING_COMPLETED
+      break
+    case 'DESTROY':
+      status = VmStatusType.TO_BE_DESTROYED
+      break
+    }
+  }
+
+  const provisioningTypes = ['apply_start', 'apply_progress', 'apply_complete']
+  if (provisioningTypes.includes(logType)) {
+    switch (action) {
+    case 'CREATE':
+      status = VmStatusType.PROVISIONING
+      break
+    case 'DESTROY':
+      status = VmStatusType.DESTROYING
+      break
+    }
+  }
+
+  const destroyCompletedTypes = ['change_summary'] // Destroy completed is same as planning completed
+  if (destroyCompletedTypes.includes(logType)) {
+    if (log['@message'].includes('Destroy complete!')) {
+      status = VmStatusType.DESTROYED
+    }
+  }
+
+  if (logType === 'outputs') {
+    switch (action) {
+    case 'CREATE': {
+      if (log.outputs?.vm_provision_status?.value === VmStatusType.PROVISIONING_COMPLETED) {
+        status = VmStatusType.PROVISIONING_COMPLETED
+        ip = log.outputs?.vm_ip?.value || undefined
+      }
+      break
+    }
+    }
+  }
+  return {status, ip}
+}

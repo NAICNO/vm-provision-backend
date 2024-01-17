@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-provisioning-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-provisioning-consumer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-provisioning-consumer
+    spec:
+      containers:
+        - name: rabbitmq-provisioning-consumer
+          image: europe-north1-docker.pkg.dev/vm-provisioning/vm-provisioning-docker/request-queue-consumer:latest
+          env:
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
+          volumeMounts:
+            - name: terraform-volume
+              mountPath: /data
+      volumes:
+        - name: terraform-volume
+          persistentVolumeClaim:
+            claimName: terraform-wd-pvc
+      serviceAccountName: rabbitmq-consumer-sa
