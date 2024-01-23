@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: rabbitmq-provisioning-consumer
-          image: europe-north1-docker.pkg.dev/vm-provisioning/vm-provisioning-docker/request-queue-consumer:latest
+          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/request-queue-consumer:latest
           env:
             - name: RABBITMQ_USER
               valueFrom:

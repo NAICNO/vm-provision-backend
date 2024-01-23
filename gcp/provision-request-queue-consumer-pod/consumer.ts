@@ -15,7 +15,7 @@ const RABBITMQ_URL = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HO
 async function generateTfVarFile(vmId: string, payload: VmProvisioningRequestPayload) {
   const folderPath = `/data/terraform/${vmId}`
   console.log('Generated Folder Path', folderPath)
-  console.log('Slected Provider', payload.provider)
+  console.log('Selected Provider', payload.provider)
   // Create folder
   ensureDirSync(folderPath)
 
@@ -106,7 +106,7 @@ async function ackAndPublish(channel: Channel, msg: Message, vmId: string, actio
 
 async function createTerraformJob(vmId: string, action: string, provider: string) {
 
-  const imageName = 'europe-north1-docker.pkg.dev/vm-provisioning/vm-provisioning-docker/terraform-runner:latest'
+  const imageName = 'europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/terraform-runner:latest'
 
   const jobType = action === 'CREATE' ? 'create' : 'destroy'
   const jobName = `tf-${jobType}-job-${vmId}`

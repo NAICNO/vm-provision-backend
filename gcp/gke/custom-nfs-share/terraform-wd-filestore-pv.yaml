@@ -9,6 +9,6 @@ spec:
     - ReadWriteMany
   nfs:
     path: /var/nfs_share  # The name of the Filestore file share
-    server: 10.166.0.22  # Internal IP address of the NFS Share instance
+    server: 10.166.0.21  # Internal IP address of the NFS Share instance
   persistentVolumeReclaimPolicy: Retain
   storageClassName: my-filestore-sc

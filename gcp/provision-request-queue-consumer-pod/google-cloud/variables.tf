@@ -1,14 +1,14 @@
 # Variables
 variable "project_id" {
-  default = "vm-provisioning"
+  default = "usit-itf-naic-project"
 }
 
 variable "region" {
-  default = "europe-west1"
+  default = "europe-north1"
 }
 
 variable "zone" {
-  default = "europe-west1-b"
+  default = "europe-north1-a"
 }
 
 variable "disk_size" {
