@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rabbitmq-provisioning-consumer
+  name: provision-request-queue-consumer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rabbitmq-provisioning-consumer
+      app: provision-request-queue-consumer
   template:
     metadata:
       labels:
-        app: rabbitmq-provisioning-consumer
+        app: provision-request-queue-consumer
     spec:
       containers:
-        - name: rabbitmq-provisioning-consumer
-          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/request-queue-consumer:latest
+        - name: provision-request-queue-consumer
+          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/provision-request-queue-consumer:latest
           env:
             - name: RABBITMQ_USER
               valueFrom:
