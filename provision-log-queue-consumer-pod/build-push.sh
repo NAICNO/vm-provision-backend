@@ -1,0 +1,7 @@
+docker build -t europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/provision-log-queue-consumer .
+docker push europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/provision-log-queue-consumer
+
+cd ../gcp/gke || exit
+kubectl delete -f provision-log-queue-consumer-deployment.yaml
+kubectl apply -f provision-log-queue-consumer-deployment.yaml
+
