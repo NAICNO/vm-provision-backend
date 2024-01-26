@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rest-backend
+  template:
+    metadata:
+      labels:
+        app: rest-backend
+    spec:
+      containers:
+        - name: rest-backend
+          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/rest-backend:latest
+          ports:
+            - containerPort: 3000
