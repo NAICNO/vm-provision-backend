@@ -34,7 +34,7 @@ export const fetchTokens = async (code: string, nonce: string) => {
       userProfile = await UserService.createUserProfileWithIdToken(decodedIdToken)
     }
 
-    UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS, null)
+    await UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS, null)
 
     return {
       accessToken: signedAccessToken,

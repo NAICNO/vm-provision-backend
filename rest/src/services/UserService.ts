@@ -41,9 +41,9 @@ export const createUserProfile = async (user: Omit<UserProfile, 'userId' | 'crea
   return userProfile
 }
 
-export const logUserActivity = (userId: string, activityType: UserActivityType, data: any) => {
+export const logUserActivity = async (userId: string, activityType: UserActivityType, data: any) => {
   const description = data ? JSON.stringify(data) : ''
-  prisma.userActivity.create({
+  await prisma.userActivity.create({
     data: {
       userId: userId,
       vmId: data?.vmId,
