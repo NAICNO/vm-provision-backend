@@ -5,11 +5,11 @@ $$
     BEGIN
         INSERT INTO provider (provider_name, description) VALUES ('NREC', 'Norwegian Research and Education Cloud') RETURNING provider_id INTO nrec_id;
 
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Medium', nrec_id, 1, 4, 20, 'GOLD Ubuntu 22.04 LTS', 'Standard VM for medium workloads', 'm1.medium');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Large', nrec_id, 2, 8, 20, 'GOLD CentOS Stream 9', 'Standard VM for large workloads', 'm1.large');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Extra Large', nrec_id, 4, 16, 20, 'GOLD CentOS Stream 9', 'Standard VM for extra large workloads', 'm1.xlarge');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('GPU Large', nrec_id, 2, 8, 20, 'vGPU Ubuntu 22.04 LTS', 'GPU VM for medium workloads', 'vgpu.m1.large');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('GPU Extra Large', nrec_id, 4, 16, 20, 'vGPU Ubuntu 22.04 LTS', 'Standard VM for extra large workloads', 'vgpu.m1.xlarge');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Medium', nrec_id, 1, 4, 20, 'GOLD Ubuntu 22.04 LTS', 'Standard VM for medium workloads', 'm1.medium', '{ "username": "ubuntu" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Large', nrec_id, 2, 8, 20, 'GOLD CentOS Stream 9', 'Standard VM for large workloads', 'm1.large', '{ "username": "cloud-user" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Extra Large', nrec_id, 4, 16, 20, 'GOLD CentOS Stream 9', 'Standard VM for extra large workloads', 'm1.xlarge', '{ "username": "cloud-user" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('GPU Large', nrec_id, 2, 8, 20, 'vGPU Ubuntu 22.04 LTS', 'GPU VM for medium workloads', 'vgpu.m1.large', '{ "username": "ubuntu" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('GPU Extra Large', nrec_id, 4, 16, 20, 'vGPU Ubuntu 22.04 LTS', 'Standard VM for extra large workloads', 'vgpu.m1.xlarge', '{ "username": "ubuntu" }');
 
     END
 $$;
@@ -21,9 +21,9 @@ $$
     BEGIN
         INSERT INTO provider (provider_name, description) VALUES ('Google Cloud', 'Google Cloud') RETURNING provider_id INTO gcloud_id;
 
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Medium', gcloud_id, 2, 4, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for medium workloads', 'e2-medium');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Large', gcloud_id, 2, 8, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for large workloads', 'n2-standard-2');
-        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name) VALUES ('Standard Extra Large', gcloud_id, 4, 16, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for extra large workloads', 'c2-standard-4');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Medium', gcloud_id, 2, 4, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for medium workloads', 'e2-medium', '{ "username": "naic-user" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Large', gcloud_id, 2, 8, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for large workloads', 'n2-standard-2', '{ "username": "naic-user" }');
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata) VALUES ('Standard Extra Large', gcloud_id, 4, 16, 20, 'ubuntu-os-cloud/ubuntu-2204-lts', 'Standard VM for extra large workloads', 'c2-standard-4', '{ "username": "naic-user" }');
 
     END
 $$;

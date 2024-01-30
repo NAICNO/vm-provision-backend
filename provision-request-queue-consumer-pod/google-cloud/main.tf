@@ -25,7 +25,7 @@ resource "google_compute_instance" "default" {
   }
 
   metadata = {
-    ssh-keys = "user:${var.public_key}"
+    ssh-keys = "naic-user:${var.public_key}"
     user-data = file("${path.module}/cloud-init.yaml")
   }
 

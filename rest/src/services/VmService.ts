@@ -9,7 +9,7 @@ import * as SshKeyService from './SshKeyService'
 import { UserActivityType } from '../utils/UserActivityType'
 import { validNextStates, VmStatusType } from '../utils/VmStatusType'
 import { VmEventType } from '../utils/VmEventType'
-import { ALLOWED_IP_RANGES, VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
+import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 import { GenericResponse } from '../types/GenericResponse'
@@ -33,6 +33,9 @@ export const getAllUserVms = async (userId: string | undefined) => {
           provider: true,
         }
       },
+    },
+    orderBy: {
+      createdAt: 'desc',
     }
   })
 }
@@ -66,7 +69,7 @@ export const sendMessageToSpecificUser = async (userId: string, message: any) =>
   }
 }
 
-const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: string, vmTemplateId: string, vmName: string, sshKeyId: string, duration: number) => {
+const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: string, vmTemplateId: string, vmName: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
   return prisma.virtualMachine.create({
     data: {
       userId: userId,
@@ -74,13 +77,14 @@ const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: s
       vmName: vmName,
       publicKeyId: sshKeyId,
       duration: duration,
+      ipRanges: ipRanges,
       status: VmStatusType.TO_BE_PROVISIONED,
     },
   })
 }
 
 
-export const startVmProvisioning = async (userId: string | undefined, vmName: string, vmTemplateId: string, sshKeyId: string, duration: number) => {
+export const startVmProvisioning = async (userId: string | undefined, vmName: string, vmTemplateId: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
   if (!userId) {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
@@ -94,7 +98,7 @@ export const startVmProvisioning = async (userId: string | undefined, vmName: st
       virtualMachine,
       queueName,
       message
-    } = await createVmInTransaction(userId, vmTemplateId, vmName, sshKeyId, template, provider, publicKey, duration)
+    } = await createVmInTransaction(userId, vmTemplateId, vmName, sshKeyId, template, provider, publicKey, duration, ipRanges)
 
     const vmId = virtualMachine.vmId
 
@@ -142,7 +146,8 @@ async function createVmInTransaction(
   template: VmTemplate,
   provider: Provider,
   publicKey: VmPublicKey,
-  duration: number):
+  duration: number,
+  ipRanges: string[]):
   Promise<{
     virtualMachine: VirtualMachine,
     queueName: string,
@@ -150,7 +155,7 @@ async function createVmInTransaction(
   }> {
   return prisma.$transaction(async (tx) => {
 
-    const virtualMachine = await createVm(tx, userId, vmTemplateId, vmName, sshKeyId, duration)
+    const virtualMachine = await createVm(tx, userId, vmTemplateId, vmName, sshKeyId, duration, ipRanges)
 
     const vmId = virtualMachine.vmId
     const messageToPublish = prepareVmCreationRequestMessage(virtualMachine, template, provider, publicKey)
@@ -302,7 +307,6 @@ const findNextVmState = (currentStatus: VmStatusType, nextStatus: VmStatusType):
 }
 
 
-
 export const getVmById = async (vmId: string) => {
   return prisma.virtualMachine.findUnique({
     where: {
@@ -343,7 +347,7 @@ const prepareVmCreationRequestMessage = (
   const public_key = publicKey.publicKey
   const image_name = template.os
   const flavor_name = template.falvorName
-  const allow_ssh_from_v4 = ALLOWED_IP_RANGES
+  const allow_ssh_from_v4 = virtualMachine.ipRanges
 
   const vm_id = virtualMachine.vmId
   const folderName = getFolderNameForProvider(provider.providerName)
