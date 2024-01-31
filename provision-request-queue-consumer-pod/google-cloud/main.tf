@@ -5,6 +5,39 @@ provider "google" {
   zone    = var.zone
 }
 
+# Google Compute Engine network and subnetwork
+resource "google_compute_network" "vpc_network" {
+  name                    = "naic-vm-${var.vm_id}-vpc-network"
+  auto_create_subnetworks = false
+  mtu                     = 1460
+}
+
+resource "google_compute_subnetwork" "default" {
+  name          = "naic-vm-${var.vm_id}-subnet"
+  ip_cidr_range = "10.0.1.0/24"
+  region        = var.region
+  network       = google_compute_network.vpc_network.id
+}
+
+# Google Compute Firewall rule for SSH and ICMP
+resource "google_compute_firewall" "allow_ssh_icmp" {
+  name    = "${var.vm_name}-${var.vm_id}-allow-ssh-icmp"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  allow {
+    protocol = "icmp"
+  }
+
+  direction = "INGRESS"
+  network = google_compute_network.vpc_network.id
+  source_ranges = var.allow_ssh_from_v4
+  target_tags   = ["naic-vm-allow-ssh-icmp-${var.vm_id}"]
+}
+
 # Google Compute Engine virtual machine
 resource "google_compute_instance" "default" {
   name         = "${var.vm_name}-${var.vm_id}"
@@ -17,41 +50,24 @@ resource "google_compute_instance" "default" {
     }
   }
 
-  network_interface {
-    network = "default"
-    access_config {
-      // Ephemeral IP
-    }
-  }
-
   metadata = {
     ssh-keys = "naic-user:${var.public_key}"
     user-data = file("${path.module}/cloud-init.yaml")
   }
 
-  tags = ["allow-ssh-icmp"]
+  tags = ["naic-vm-allow-ssh-icmp-${var.vm_id}"]
 
-  service_account {
-    scopes = ["cloud-platform"]
-  }
-}
+  network_interface {
+    subnetwork = google_compute_subnetwork.default.id
 
-# Google Compute Firewall rule for SSH and ICMP
-resource "google_compute_firewall" "allow_ssh_icmp" {
-  name    = "${var.vm_name}-${var.vm_id}-allow-ssh-icmp"
-  network = "default"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
+    access_config {
+      # Include this section to give the VM an external IP address
+    }
   }
 
-  allow {
-    protocol = "icmp"
+  labels = {
+    "env" = "naic-vm"
   }
-
-  source_ranges = var.allow_ssh_from_v4
-  target_tags   = ["allow-ssh-icmp"]
 }
 
 # Output the IP address of the VM
