@@ -315,7 +315,7 @@ export const getVmById = async (vmId: string) => {
   })
 }
 
-export const getVmOfUserById = async (vmId: string, userId: string) => {
+export const getVmOfUserById = async (vmId: string, userId: string | undefined) => {
   try {
     if (!userId || !vmId) {
       throw new Error(ErrorMessages.UserNotAuthorized)
