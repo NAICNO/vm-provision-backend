@@ -13,11 +13,11 @@ const router = express.Router()
 
 router.use(authenticateToken)
 router.get('/', getAllUserVms)
-router.get('/:vmId', getVm)
 router.get('/templates', getVmTemplates)
 router.get('/ssh/keys', getPublicKeys)
 router.post('/ssh/create', createSSHKeyPair)
 router.post('/create', startVmProvisioning)
+router.get('/:vmId', getVm)
 
 export default router
 

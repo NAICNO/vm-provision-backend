@@ -315,20 +315,36 @@ export const getVmById = async (vmId: string) => {
   })
 }
 
-export const getVmOfUserById = async (vmId: string, userId: string | undefined) => {
-  return prisma.virtualMachine.findUnique({
-    where: {
-      vmId: vmId,
-      userId: userId,
-    },
-    include: {
-      vmTemplate: {
-        include: {
-          provider: true,
-        }
+export const getVmOfUserById = async (vmId: string, userId: string) => {
+  try {
+    if (!userId || !vmId) {
+      throw new Error(ErrorMessages.UserNotAuthorized)
+    }
+    return await prisma.virtualMachine.findUniqueOrThrow({
+      where: {
+        vmId: vmId,
+        userId: userId,
       },
-    },
-  })
+      include: {
+        vmTemplate: {
+          include: {
+            provider: true,
+          }
+        },
+      },
+    })
+  } catch (e) {
+    const error = new Error(ErrorMessages.InternalServerError)
+    Sentry.captureException(error, {
+      contexts: {
+        message: {
+          vmId: vmId,
+          userId: userId,
+        }
+      }
+    })
+    throw error
+  }
 }
 
 const getVmTemplateById = async (templateId: string) => {
