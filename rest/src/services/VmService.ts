@@ -315,6 +315,22 @@ export const getVmById = async (vmId: string) => {
   })
 }
 
+export const getVmOfUserById = async (vmId: string, userId: string | undefined) => {
+  return prisma.virtualMachine.findUnique({
+    where: {
+      vmId: vmId,
+      userId: userId,
+    },
+    include: {
+      vmTemplate: {
+        include: {
+          provider: true,
+        }
+      },
+    },
+  })
+}
+
 const getVmTemplateById = async (templateId: string) => {
   try {
     return await prisma.vmTemplate.findUniqueOrThrow({

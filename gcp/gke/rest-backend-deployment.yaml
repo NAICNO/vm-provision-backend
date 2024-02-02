@@ -17,3 +17,10 @@ spec:
           image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/rest-backend:latest
           ports:
             - containerPort: 3000
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2"

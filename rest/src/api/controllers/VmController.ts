@@ -8,6 +8,13 @@ export const getAllUserVms = async (req: Request, res: Response) => {
   res.json(machines)
 }
 
+export const getVm = async (req: Request, res: Response) => {
+  const userProfile = req.userProfile
+  const vmId = req.params.vmId
+  const vmData = await VmService.getVmOfUserById(vmId, userProfile?.userId)
+  res.json(vmData)
+}
+
 export const getVmTemplates = async (req: Request, res: Response) => {
   const vmTemplates = await VmService.getAllVmTemplates()
   res.json(vmTemplates)

@@ -1,0 +1,137 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table user_activity {
+  activityId String [pk]
+  userId String
+  vmId String
+  activityType String [not null]
+  description String
+  timestamp DateTime [default: `now()`]
+}
+
+Table user_profile {
+  userId String [pk]
+  email String [unique, not null]
+  username String [unique, not null]
+  password String [not null]
+  firstName String [not null]
+  lastName String [not null]
+  userType String [not null, default: 'User']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+  virtualMachines virtual_machine [not null]
+  publicKeys vm_public_key [not null]
+  messages message [not null]
+}
+
+Table virtual_machine {
+  vmId String [pk]
+  userId String [not null]
+  templateId String [not null]
+  vmName String [not null]
+  ipv4Address String
+  ipv6Address String
+  status String
+  publicKeyId String [not null]
+  duration Int [not null]
+  ipRanges String[] [not null]
+  startedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+  publicKey vm_public_key [not null]
+  vmTemplate vm_template [not null]
+  userProfile user_profile [not null]
+  vmEvents vm_event [not null]
+  messages message [not null]
+  ProvisionLog provision_log [not null]
+}
+
+Table vm_event {
+  eventId String [pk]
+  vmId String
+  eventType String [not null]
+  description String
+  timestamp DateTime [default: `now()`]
+  virtualMachine virtual_machine
+}
+
+Table vm_template {
+  templateId String [pk]
+  templateName String [not null]
+  falvorName String [not null, default: '']
+  providerId String [not null]
+  cpu Int [not null]
+  ram Int [not null]
+  storage Int [not null]
+  os String [not null]
+  description String
+  metadata Json
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+  virtualMachines virtual_machine [not null]
+  provider provider [not null]
+}
+
+Table provider {
+  providerId String [pk]
+  providerName String [unique, not null]
+  description String
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+  VmTemplate vm_template [not null]
+}
+
+Table vm_public_key {
+  keyId String [pk]
+  publicKey String [not null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+  userId String
+  name String [not null]
+  virtualMachines virtual_machine [not null]
+  userProfile user_profile
+}
+
+Table message {
+  messageId String [pk]
+  queueName String [not null]
+  message String [not null]
+  userId String
+  vmId String
+  metadata String
+  status String [not null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+  virtualMachine virtual_machine
+  userProfile user_profile
+}
+
+Table provision_log {
+  logId String [pk]
+  queueName String [not null]
+  vmId String
+  action String [not null]
+  logMessage Json [not null]
+  timestamp DateTime [default: `now()`, not null]
+  virtualMachine virtual_machine
+}
+
+Ref: virtual_machine.publicKeyId > vm_public_key.keyId
+
+Ref: virtual_machine.templateId > vm_template.templateId
+
+Ref: virtual_machine.userId > user_profile.userId [delete: No Action]
+
+Ref: vm_event.vmId > virtual_machine.vmId [delete: Cascade]
+
+Ref: vm_template.providerId > provider.providerId [delete: No Action]
+
+Ref: vm_public_key.userId > user_profile.userId [delete: Cascade]
+
+Ref: message.vmId > virtual_machine.vmId [delete: No Action]
+
+Ref: message.userId > user_profile.userId [delete: No Action]
+
+Ref: provision_log.vmId > virtual_machine.vmId [delete: No Action]

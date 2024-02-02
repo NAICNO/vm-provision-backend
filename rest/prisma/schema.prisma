@@ -8,6 +8,10 @@ datasource db {
   url      = env("DATABASE_URL_GCP")
 }
 
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
 model UserActivity {
   activityId   String    @id @default(dbgenerated("gen_random_uuid()")) @map("activity_id") @db.Uuid
   userId       String?   @map("user_id") @db.Uuid
