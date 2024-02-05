@@ -122,8 +122,18 @@ export const startVmProvisioning = async (userId: string | undefined, vmName: st
   }
 }
 
-export const startVmDestroy = async (vm: VirtualMachine) => {
+export const requestVmDestroy = async (vmId: string, userId?: string) => {
+  if (!userId) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+  const vm = await getVmOfUserById(vmId, userId)
+  if (!vm) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+  await startVmDestroy(vm)
+}
 
+export const startVmDestroy = async (vm: VirtualMachine) => {
   const template = await getVmTemplateById(vm.templateId)
   const provider = await getProviderById(template.providerId)
 
@@ -132,7 +142,7 @@ export const startVmDestroy = async (vm: VirtualMachine) => {
     message
   } = await destroyVmInTransaction(vm, provider)
 
-  UserService.logUserActivity(vm.userId, UserActivityType.VM_DESTROY_REQUESTED, {vmId: vm.vmId})
+  await UserService.logUserActivity(vm.userId, UserActivityType.VM_DESTROY_REQUESTED, {vmId: vm.vmId})
   logVmEvent(vm.vmId, VmEventType.DESTROYING_REQUESTED, null)
 
   await MessageQueueService.publishMessage(queueName, message)
@@ -286,7 +296,7 @@ export const getExpiredVms = async () => {
   //Get all running vms which have their startedAt set
   const allRunningVms = await prisma.virtualMachine.findMany({
     where: {
-      status: VmStatusType.PROVISIONING_COMPLETED,
+      status: VmStatusType.RUNNING,
       startedAt: {
         not: null
       }
@@ -331,6 +341,7 @@ export const getVmOfUserById = async (vmId: string, userId: string | undefined) 
             provider: true,
           }
         },
+        publicKey: true,
       },
     })
   } catch (e) {

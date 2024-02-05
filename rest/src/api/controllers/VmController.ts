@@ -48,3 +48,10 @@ export const createSSHKeyPair = async (req: Request, res: Response) => {
   const keyData = await SshKeyService.createSSHKeyPair(req.userProfile?.userId, keyName)
   res.json(keyData)
 }
+
+export const requestVmDestroy = async (req: Request, res: Response) => {
+  const vmId = req.params.vmId
+  const userProfile = req.userProfile
+  await VmService.requestVmDestroy(vmId, userProfile?.userId)
+  res.json({ status: 'success' })
+}

@@ -4,7 +4,7 @@ import {
   getAllUserVms,
   getPublicKeys,
   getVm,
-  getVmTemplates,
+  getVmTemplates, requestVmDestroy,
   startVmProvisioning,
 } from '../controllers/VmController'
 import { authenticateToken } from '../middlewares/AuthMiddleware'
@@ -17,6 +17,7 @@ router.get('/templates', getVmTemplates)
 router.get('/ssh/keys', getPublicKeys)
 router.post('/ssh/create', createSSHKeyPair)
 router.post('/create', startVmProvisioning)
+router.delete('/destroy/:vmId', requestVmDestroy)
 router.get('/:vmId', getVm)
 
 export default router
