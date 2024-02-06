@@ -51,6 +51,7 @@ model VirtualMachine {
   publicKeyId  String         @map("public_key_id") @db.Uuid
   duration     Int            @map("duration")
   ipRanges     String[]       @map("ip_ranges")
+  metadata     Json?          @map("metadata")
   startedAt    DateTime?      @map("started_at") @db.Timestamp(6)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt    DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
@@ -86,6 +87,7 @@ model VmTemplate {
   os              String           @map("os")
   description     String?          @map("description")
   metadata        Json?            @map("metadata")
+  enabled         Boolean          @default(true)
   createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?        @default(now()) @map("updated_at") @db.Timestamp(6)
   virtualMachines VirtualMachine[]

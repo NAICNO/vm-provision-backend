@@ -49,6 +49,9 @@ export const getAllVmTemplates = async () => {
         },
         include: {
           provider: true,
+        },
+        where: {
+          enabled: true,
         }
       }
     )
