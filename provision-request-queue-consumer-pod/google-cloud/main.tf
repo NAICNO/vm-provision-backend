@@ -21,7 +21,7 @@ resource "google_compute_subnetwork" "default" {
 
 # Google Compute Firewall rule for SSH and ICMP
 resource "google_compute_firewall" "allow_ssh_icmp" {
-  name    = "${var.vm_name}-${var.vm_id}-allow-ssh-icmp"
+  name    = "naic-vm-${var.vm_id}-allow-ssh-icmp"
 
   allow {
     protocol = "tcp"
@@ -40,7 +40,7 @@ resource "google_compute_firewall" "allow_ssh_icmp" {
 
 # Google Compute Engine virtual machine
 resource "google_compute_instance" "default" {
-  name         = "${var.vm_name}-${var.vm_id}"
+  name         = "naic-vm-${var.vm_id}"
   machine_type = var.flavor_name
 
   boot_disk {

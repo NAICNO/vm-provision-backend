@@ -37,7 +37,7 @@ Table virtual_machine {
   publicKeyId String [not null]
   duration Int [not null]
   ipRanges String[] [not null]
-  metadata Json
+  metadata Json [default: '{}']
   startedAt DateTime
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [default: `now()`, not null]
@@ -68,7 +68,7 @@ Table vm_template {
   storage Int [not null]
   os String [not null]
   description String
-  metadata Json
+  metadata Json [default: '{}']
   enabled Boolean [not null, default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
@@ -102,7 +102,7 @@ Table message {
   message String [not null]
   userId String
   vmId String
-  metadata String
+  metadata String [default: '{}']
   status String [not null]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]

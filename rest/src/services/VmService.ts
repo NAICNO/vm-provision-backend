@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node'
-import { Message, PrismaClient, Provider, VirtualMachine, VmPublicKey, VmTemplate } from '@prisma/client'
+import { Message, Prisma, PrismaClient, Provider, VirtualMachine, VmPublicKey, VmTemplate } from '@prisma/client'
 
 import { prisma } from '../models/PrismaClient'
 import { ErrorMessages } from '../utils/ErrorMessages'
@@ -23,20 +23,42 @@ export const getAllUserVms = async (userId: string | undefined) => {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
   getIoInstance()
-  return prisma.virtualMachine.findMany({
-    where: {
-      userId: userId,
-    },
-    include: {
-      vmTemplate: {
-        include: {
-          provider: true,
+
+  const whereClause = Prisma.validator<Prisma.VirtualMachineWhereInput>()({
+    userId: userId,
+    OR: [
+      {
+        metadata: {
+          path: ['archived'],
+          equals: Prisma.AnyNull
         }
       },
+      {
+        metadata: {
+          path: ['archived'],
+          equals: false
+        }
+      }
+    ]
+  })
+
+  const includeClause = Prisma.validator<Prisma.VirtualMachineInclude>()({
+    vmTemplate: {
+      include: {
+        provider: true,
+      }
     },
-    orderBy: {
-      createdAt: 'desc',
-    }
+  })
+
+  const orderByClause = Prisma.validator<Prisma.VirtualMachineOrderByWithAggregationInput>()({
+    createdAt: 'desc',
+
+  })
+
+  return prisma.virtualMachine.findMany({
+    where: whereClause,
+    include: includeClause,
+    orderBy: orderByClause,
   })
 }
 
@@ -149,6 +171,35 @@ export const startVmDestroy = async (vm: VirtualMachine) => {
   logVmEvent(vm.vmId, VmEventType.DESTROYING_REQUESTED, null)
 
   await MessageQueueService.publishMessage(queueName, message)
+}
+
+export const archiveVm = async (vmId: string, userId?: string) => {
+  if (!userId) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+  const vm = await getVmOfUserById(vmId, userId)
+  if (!vm) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+
+  const currentVm = await getVmById(vmId)
+  const currentMetadata = currentVm?.metadata as Prisma.JsonObject
+
+  const updatedMetadata = {
+    ...currentMetadata,
+    archived: true,
+  }
+
+  await prisma.virtualMachine.update({
+    where: {
+      vmId: vmId,
+    },
+    data: {
+      metadata: updatedMetadata,
+      updatedAt: new Date(),
+    }
+
+  })
 }
 
 async function createVmInTransaction(

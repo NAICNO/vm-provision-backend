@@ -53,5 +53,12 @@ export const requestVmDestroy = async (req: Request, res: Response) => {
   const vmId = req.params.vmId
   const userProfile = req.userProfile
   await VmService.requestVmDestroy(vmId, userProfile?.userId)
-  res.json({ status: 'success' })
+  res.json({status: 'success'})
+}
+
+export const archiveVm = async (req: Request, res: Response) => {
+  const vmId = req.params.vmId
+  const userProfile = req.userProfile
+  await VmService.archiveVm(vmId, userProfile?.userId)
+  res.json({status: 'success'})
 }

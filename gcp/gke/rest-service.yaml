@@ -9,6 +9,6 @@ spec:
     - port: 80
       targetPort: 3000
       protocol: TCP
-      name: amqp
+      name: http
   selector:
     app: rest-backend
