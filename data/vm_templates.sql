@@ -33,3 +33,16 @@ $$
 
     END
 $$;
+
+DO
+$$
+    DECLARE
+        azure_id uuid;
+    BEGIN
+        INSERT INTO provider (provider_name, description) VALUES ('Azure', 'Microsoft Azure') RETURNING provider_id INTO azure_id;
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Medium', azure_id, 2, 8, 50, 'Ubuntu-2204-lts', 'Standard VM for medium workloads', 'Standard_F2', '{ "username": "naic-user", "tags": ["simple"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', azure_id, 4, 16, 100, 'Ubuntu-2204-lts', 'Standard VM for large workloads', 'Standard_F4', '{ "username": "naic-user", "tags": ["advanced"]}', true);
+
+    END
+$$;

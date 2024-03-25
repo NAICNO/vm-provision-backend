@@ -1,7 +1,7 @@
 // Get first name and last name from name
-import { Express } from 'express'
+import {Express} from 'express'
 import * as Sentry from '@sentry/node'
-import { ProfilingIntegration } from '@sentry/profiling-node'
+import {ProfilingIntegration} from '@sentry/profiling-node'
 
 export const getFirstName = (name: string) => {
   const nameArray = name.split(' ')
@@ -40,6 +40,8 @@ export const getFolderNameForProvider = (providerName: string) => {
     return 'google-cloud'
   } else if (providerName.toLowerCase() === 'aws') {
     return 'aws'
+  } else if (providerName.toLowerCase() === 'azure') {
+    return 'azure'
   }
   return 'nrec'
 }

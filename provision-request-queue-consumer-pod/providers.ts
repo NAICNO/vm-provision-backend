@@ -70,6 +70,46 @@ export const getEnvironmentVariables = (vmId: string, action: string, provider: 
         value: '/secrets/google-cloud/google-cloud-service-account.json'
       },
     ]
+  case 'azure':
+    return [
+      ...commonEnv,
+      {
+        name: 'ARM_CLIENT_ID',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'azure-secret',
+            key: 'clientid'
+          }
+        },
+      },
+      {
+        name: 'ARM_CLIENT_SECRET',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'azure-secret',
+            key: 'clientsecret'
+          }
+        },
+      },
+      {
+        name: 'ARM_TENANT_ID',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'azure-secret',
+            key: 'tenantid'
+          }
+        },
+      },
+      {
+        name: 'ARM_SUBSCRIPTION_ID',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'azure-secret',
+            key: 'subscriptionid'
+          }
+        }
+      }
+    ]
   }
 
   return [
@@ -99,6 +139,8 @@ export const getVolumeMounts = (vmId: string, provider: string): V1VolumeMount[]
         readOnly: true
       }
     ]
+  case 'azure':
+    return commonVolumeMounts
   default:
     return commonVolumeMounts
   }
@@ -128,6 +170,8 @@ export const getVolumes = (provider: string) => {
         }
       }
     ]
+  case 'azure':
+    return commonVolumes
   default:
     return commonVolumes
   }
