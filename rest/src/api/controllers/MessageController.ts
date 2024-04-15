@@ -7,6 +7,6 @@ export const processMessage = async (req: Request, res: Response) => {
   const queueName = req.body.queueName
   const message = req.body.message
 
-  const result = await VmService.updateVmProvisioningStatus(vmId, action, queueName, message)
+  const result = await VmService.updateVmProvisioningStatusByTfLog(vmId, action, queueName, message)
   res.json(result)
 }

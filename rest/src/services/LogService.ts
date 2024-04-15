@@ -108,7 +108,7 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
     switch (action) {
     case 'CREATE': {
       if (log.outputs?.vm_provision_status?.value === VmStatusType.PROVISIONING_COMPLETED) {
-        status = VmStatusType.RUNNING
+        status = VmStatusType.PROVISIONING_COMPLETED
         ip = log.outputs?.vm_ip?.value || undefined
       }
       break

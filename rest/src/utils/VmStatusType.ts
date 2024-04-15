@@ -6,6 +6,7 @@ export const VmStatusType = {
   PROVISIONING: 'PROVISIONING',
   PROVISIONING_COMPLETED: 'PROVISIONING_COMPLETED',
   PROVISIONING_FAILED: 'PROVISIONING_FAILED',
+  INITIALIZING: 'INITIALIZING',
   RUNNING: 'RUNNING',
   STOPPED: 'STOPPED',
   SHUTDOWN: 'SHUTDOWN',
@@ -24,6 +25,7 @@ export const validNextStates = {
     VmStatusType.PROVISIONING,
     VmStatusType.PROVISIONING_COMPLETED,
     VmStatusType.PROVISIONING_FAILED,
+    VmStatusType.INITIALIZING,
     VmStatusType.RUNNING,
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -37,6 +39,7 @@ export const validNextStates = {
     VmStatusType.PROVISIONING,
     VmStatusType.PROVISIONING_COMPLETED,
     VmStatusType.PROVISIONING_FAILED,
+    VmStatusType.INITIALIZING,
     VmStatusType.RUNNING,
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -49,6 +52,7 @@ export const validNextStates = {
     VmStatusType.PROVISIONING,
     VmStatusType.PROVISIONING_COMPLETED,
     VmStatusType.PROVISIONING_FAILED,
+    VmStatusType.INITIALIZING,
     VmStatusType.RUNNING,
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -60,6 +64,7 @@ export const validNextStates = {
     VmStatusType.PROVISIONING,
     VmStatusType.PROVISIONING_COMPLETED,
     VmStatusType.PROVISIONING_FAILED,
+    VmStatusType.INITIALIZING,
     VmStatusType.RUNNING,
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -78,6 +83,7 @@ export const validNextStates = {
     VmStatusType.DESTROYED,
   ],
   [VmStatusType.PROVISIONING_COMPLETED]: [
+    VmStatusType.INITIALIZING,
     VmStatusType.RUNNING,
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -95,6 +101,14 @@ export const validNextStates = {
   //   VmStatusType.DESTROYING,
   //   VmStatusType.DESTROYED,
   // ],
+  [VmStatusType.INITIALIZING]: [
+    VmStatusType.RUNNING,
+    VmStatusType.STOPPED,
+    VmStatusType.SHUTDOWN,
+    VmStatusType.TO_BE_DESTROYED,
+    VmStatusType.DESTROYING,
+    VmStatusType.DESTROYED,
+  ],
   [VmStatusType.RUNNING]: [
     VmStatusType.STOPPED,
     VmStatusType.SHUTDOWN,
@@ -126,4 +140,10 @@ export const validNextStates = {
   [VmStatusType.DESTROYED]: [
     VmStatusType.DESTROYED,
   ],
+}
+
+export const URL_ACTION_TO_VM_STATUS_MAP = {
+  NOTIFY_VM_INITIALIZE_START: VmStatusType.INITIALIZING,
+  NOTIFY_VM_INITIALIZE_COMPLETE: VmStatusType.RUNNING,
+  NOTIFY_VM_DESTROY_START: VmStatusType.DESTROYING,
 }

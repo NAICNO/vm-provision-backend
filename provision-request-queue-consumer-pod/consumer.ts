@@ -1,8 +1,8 @@
-import {Channel, connect, Message} from 'amqplib'
-import fs, {writeFileSync, ensureDirSync} from 'fs-extra'
+import { Channel, connect, Message } from 'amqplib'
+import fs, { writeFileSync, ensureDirSync } from 'fs-extra'
 import VmProvisioningRequestPayload from './VmProvisioningRequestPayload'
 import * as k8s from '@kubernetes/client-node'
-import {getEnvironmentVariables, getVolumeMounts, getVolumes} from './providers'
+import { getEnvironmentVariables, getVolumeMounts, getVolumes } from './providers'
 
 const VM_PROVISIONING_REQUESTS_QUEUE = 'vm_provisioning_requests'
 const VM_PROVISIONING_PROGRESS_QUEUE = 'vm_provisioning_progress'
@@ -141,6 +141,16 @@ async function createTerraformJob(vmId: string, action: string, provider: string
             workingDir: `/terraform/${vmId}`,
             command: ['sh', '-c'],
             args: [terraformCommand],
+            resources: {
+              requests: {
+                cpu: '500m',
+                memory: '1Gi'
+              },
+              limits: {
+                cpu: '1',
+                memory: '2Gi'
+              }
+            }
           }],
           restartPolicy: 'Never',
           volumes: getVolumes(provider)

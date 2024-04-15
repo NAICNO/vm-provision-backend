@@ -10,4 +10,5 @@ export const ErrorMessages = {
   UserNotAuthorized: 'User unauthorized',
   CannotCreateVmDueToServerError: 'Cannot create VM due to server error',
   ApiKeyNotProvided: 'API key not provided',
+  AppUrlInvalidOrExpired: 'Invalid or expired URL',
 }
