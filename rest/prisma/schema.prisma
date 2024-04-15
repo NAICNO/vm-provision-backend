@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-arm64-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
@@ -51,7 +51,7 @@ model VirtualMachine {
   publicKeyId  String         @map("public_key_id") @db.Uuid
   duration     Int            @map("duration")
   ipRanges     String[]       @map("ip_ranges")
-  metadata     Json?          @map("metadata") @default("{}")
+  metadata     Json?          @default("{}") @map("metadata")
   startedAt    DateTime?      @map("started_at") @db.Timestamp(6)
   createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt    DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
@@ -86,7 +86,7 @@ model VmTemplate {
   storage         Int              @map("storage")
   os              String           @map("os")
   description     String?          @map("description")
-  metadata        Json?            @map("metadata") @default("{}")
+  metadata        Json?            @default("{}") @map("metadata")
   enabled         Boolean          @default(true)
   createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?        @default(now()) @map("updated_at") @db.Timestamp(6)
@@ -126,7 +126,7 @@ model Message {
   message        String          @map("message")
   userId         String?         @map("user_id") @db.Uuid
   vmId           String?         @map("vm_id") @db.Uuid
-  metadata       String?         @map("metadata") @default("{}")
+  metadata       String?         @default("{}") @map("metadata")
   status         String          @map("status")
   createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt      DateTime?       @default(now()) @map("updated_at") @db.Timestamp(6)
@@ -146,4 +146,17 @@ model ProvisionLog {
   virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("provision_log")
+}
+
+model AppUrl {
+  urlId      String    @id @default(dbgenerated("gen_random_uuid()")) @map("url_id") @db.Uuid
+  actionType String    @map("action_type")
+  token      String    @unique @map("token")
+  usedAt     DateTime? @map("used_at")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamp(6)
+  updatedAt  DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+  metadata   Json?     @default("{}") @map("metadata")
+
+  @@map("app_url")
 }

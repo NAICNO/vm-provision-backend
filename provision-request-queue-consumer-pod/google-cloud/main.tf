@@ -21,7 +21,7 @@ resource "google_compute_subnetwork" "default" {
 
 # Google Compute Firewall rule for SSH and ICMP
 resource "google_compute_firewall" "allow_ssh_icmp" {
-  name    = "naic-vm-${var.vm_id}-allow-ssh-icmp"
+  name = "naic-vm-${var.vm_id}-allow-ssh-icmp"
 
   allow {
     protocol = "tcp"
@@ -32,8 +32,8 @@ resource "google_compute_firewall" "allow_ssh_icmp" {
     protocol = "icmp"
   }
 
-  direction = "INGRESS"
-  network = google_compute_network.vpc_network.id
+  direction     = "INGRESS"
+  network       = google_compute_network.vpc_network.id
   source_ranges = var.allow_ssh_from_v4
   target_tags   = ["naic-vm-allow-ssh-icmp-${var.vm_id}"]
 }
@@ -46,13 +46,16 @@ resource "google_compute_instance" "default" {
   boot_disk {
     initialize_params {
       image = var.image_name
-      size = var.disk_size
+      size  = var.disk_size
     }
   }
 
   metadata = {
-    ssh-keys = "naic-user:${var.public_key}"
-    user-data = file("${path.module}/cloud-init.yaml")
+    ssh-keys  = "naic-user:${var.public_key}"
+    user-data = templatefile("${path.module}/cloud-init.yaml", {
+      init_boot_call_url = var.init_boot_call_url
+      phone_home_url     = var.phone_home_url
+    })
   }
 
   tags = ["naic-vm-allow-ssh-icmp-${var.vm_id}"]
@@ -76,6 +79,6 @@ output "vm_ip" {
 }
 
 output "vm_provision_status" {
-  value = "PROVISIONING_COMPLETED"
+  value      = "PROVISIONING_COMPLETED"
   depends_on = [google_compute_instance.default]
 }

@@ -1,5 +1,9 @@
 #cloud-config
 
+bootcmd:
+  - |
+    curl -X POST -d "status=boot_started" ${init_boot_call_url}
+
 write_files:
   - path: /etc/profile.d/eessi_init.sh
     content: |
@@ -29,7 +33,11 @@ runcmd:
     if [ -f /etc/debian_version ]; then
       curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/debian.sh | bash
     fi
-    
 
-
-
+phone_home:
+  url: ${phone_home_url}
+  post:
+    - instance_id
+    - hostname
+    - fqdn
+  tries: 5

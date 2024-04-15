@@ -41,7 +41,10 @@ resource "openstack_compute_instance_v2" "vm" {
     name = "dualStack"
   }
 
-  user_data = templatefile("${path.module}/cloud-init.yaml", {})
+  user_data = templatefile("${path.module}/cloud-init.yaml", {
+    phone_home_url = var.phone_home_url
+    init_boot_call_url = var.init_boot_call_url
+  })
 
   depends_on = [
     openstack_networking_secgroup_v2.instance_ssh_access,

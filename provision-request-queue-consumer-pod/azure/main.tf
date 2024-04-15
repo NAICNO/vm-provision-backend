@@ -112,11 +112,10 @@ resource "azurerm_linux_virtual_machine" "main" {
     caching              = "ReadWrite"
   }
 
-  custom_data = base64encode(data.local_file.cloudinit.content)
-}
-
-data "local_file" "cloudinit" {
-  filename = "${path.module}/cloud-init.yaml"
+  custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml", {
+    phone_home_url = var.phone_home_url
+    init_boot_call_url = var.init_boot_call_url
+  }))
 }
 
 data "azurerm_public_ip" "main" {

@@ -6,8 +6,9 @@ import { ErrorMessages } from '../utils/ErrorMessages'
 import * as UserService from './UserService'
 import * as MessageQueueService from './MessageQueueService'
 import * as SshKeyService from './SshKeyService'
+import * as AppUrlService from './AppUrlService'
 import { UserActivityType } from '../utils/UserActivityType'
-import { validNextStates, VmStatusType } from '../utils/VmStatusType'
+import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates, VmStatusType } from '../utils/VmStatusType'
 import { VmEventType } from '../utils/VmEventType'
 import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
@@ -17,6 +18,8 @@ import { getIoInstance, getSocketIdByUsername } from '../sockets'
 import { WebSocketEventType } from '../utils/WebSocketEventType'
 import { getFolderNameForProvider } from '../utils/Utils'
 import * as LogService from './LogService'
+import { CREATE_ACTIONS, DESTROY_ACTIONS, UrlActionType } from '../utils/UrlActionType'
+import { getFullAppUrl } from './AppUrlService'
 
 export const getAllUserVms = async (userId: string | undefined) => {
   if (!userId) {
@@ -107,7 +110,6 @@ const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: s
     },
   })
 }
-
 
 export const startVmProvisioning = async (userId: string | undefined, vmName: string, vmTemplateId: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
   if (!userId) {
@@ -222,7 +224,14 @@ async function createVmInTransaction(
     const virtualMachine = await createVm(tx, userId, vmTemplateId, vmName, sshKeyId, duration, ipRanges)
 
     const vmId = virtualMachine.vmId
-    const messageToPublish = prepareVmCreationRequestMessage(virtualMachine, template, provider, publicKey)
+
+    const notifyVmInitStartUrl = await AppUrlService.createAppUrl(tx, UrlActionType.NOTIFY_VM_INITIALIZE_START, {vmId: virtualMachine.vmId})
+    const notifyVmInitCompleteUrl = await AppUrlService.createAppUrl(tx, UrlActionType.NOTIFY_VM_INITIALIZE_COMPLETE, {vmId: virtualMachine.vmId})
+
+    const notifyVmInitStartUrlString = getFullAppUrl(notifyVmInitStartUrl)
+    const notifyVmInitCompleteUrlString = getFullAppUrl(notifyVmInitCompleteUrl)
+
+    const messageToPublish = prepareVmCreationRequestMessage(virtualMachine, template, provider, publicKey, notifyVmInitStartUrlString, notifyVmInitCompleteUrlString)
     const messageToPublishString = JSON.stringify(messageToPublish)
 
     const message = await MessageQueueService
@@ -243,9 +252,7 @@ async function destroyVmInTransaction(vm: VirtualMachine, provider: Provider):
   }> {
   return prisma.$transaction(async (tx) => {
 
-    console.log('destroyVmInTransaction', vm.vmId)
-
-    const updatedVm = await prisma.virtualMachine.update(
+    await prisma.virtualMachine.update(
       {
         where: {
           vmId: vm.vmId,
@@ -256,8 +263,6 @@ async function destroyVmInTransaction(vm: VirtualMachine, provider: Provider):
         }
       }
     )
-
-    console.log('updatedVm', updatedVm)
 
     const messageToPublish = prepareVmDestroyRequestMessage(vm.vmId, provider)
     const messageToPublishString = JSON.stringify(messageToPublish)
@@ -274,45 +279,96 @@ async function destroyVmInTransaction(vm: VirtualMachine, provider: Provider):
 
 export const logVmEvent = (vmId: string, eventType: VmEventType, data: any) => {
   const description = data ? JSON.stringify(data) : ''
-  console.log('logVmEvent', vmId, eventType, description)
   prisma.vmEvent.create({
     data: {
       vmId: vmId,
       eventType: eventType,
       description: description,
     },
-  }).then(() => {
-    console.log('Vm Event logged', vmId, eventType, description)
   })
 }
 
-export const updateVmProvisioningStatus = async (vmId: string, action: string, queueName: string, message: any): Promise<GenericResponse> => {
+export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: string, queueName: string, message: any): Promise<GenericResponse> => {
+  try {
+    await logProvisioningStatus(vmId, action, queueName, message)
 
+    const log = LogService.convertToTFProgressLog(message)
+    if (!log) {
+      return GenericResponse.error
+    }
+
+    const vm = await getVmById(vmId)
+    if (!vm) {
+      return GenericResponse.error
+    }
+
+    const currentStatus = vm.status || VmStatusType.UNKNOWN
+    const {
+      status: statusFromLog,
+      ip: ipFromLog
+    } = LogService.findStatusFromProvisionLog(log, action)
+
+    const updatedVm = await updateVmStatus(vmId, statusFromLog, currentStatus, ipFromLog)
+
+    await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status, ipv4Address: updatedVm.ipv4Address})
+
+    return GenericResponse.success
+  } catch (error) {
+    console.error('Error updating VM status via TF log', error)
+    return GenericResponse.error
+  }
+}
+
+export const updateVmProvisioningStatusByRestCallback = async (vmId: string, urlActionType: UrlActionType): Promise<GenericResponse> => {
+
+  try {
+    if (!(urlActionType in URL_ACTION_TO_VM_STATUS_MAP)) {
+      throw new Error(`Invalid urlActionType: ${urlActionType}`)
+    }
+
+    const action = getActionByUrlActionType(urlActionType)
+
+    await logProvisioningStatus(vmId, action, 'REST_CALLBACK', {urlActionType})
+
+    //Get status from the vm by urlActionType
+    const statusFromUrlAction = URL_ACTION_TO_VM_STATUS_MAP[urlActionType as keyof typeof URL_ACTION_TO_VM_STATUS_MAP]
+
+    const vm = await getVmById(vmId)
+
+    const currentStatus = vm?.status || VmStatusType.UNKNOWN
+
+    const updatedVm = await updateVmStatus(vmId, statusFromUrlAction, currentStatus)
+
+    await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status})
+
+    return GenericResponse.success
+  } catch (error) {
+    console.error('Error updating VM status via REST callback', error)
+    return GenericResponse.error
+  }
+
+}
+
+export const getActionByUrlActionType = (urlActionType: UrlActionType): string => {
+  if (CREATE_ACTIONS.includes(urlActionType)) {
+    return 'CREATE'
+  } else if (DESTROY_ACTIONS.includes(urlActionType)) {
+    return 'DESTROY'
+  } else {
+    return 'UNKNOWN'
+  }
+}
+
+export const logProvisioningStatus = async (vmId: string, action: string, queueName: string, message: any) => {
   await LogService.createProvisionLog(vmId, action, queueName, message)
+}
 
-  const log = LogService.convertToTFProgressLog(message)
-  if (!log) {
-    console.error('Invalid message received', message)
-    return GenericResponse.error
-  }
-
-  const vm = await getVmById(vmId)
-  if (!vm) {
-    console.error('VM not found', vmId)
-    return GenericResponse.error
-  }
-
-  const currentStatus = vm.status || VmStatusType.UNKNOWN
-  const {
-    status: statusFromLog,
-    ip: ipFromLog
-  } = LogService.findStatusFromProvisionLog(log, action)
-
+export const updateVmStatus = async (vmId: string, statusFromLog: VmStatusType, currentStatus: VmStatusType, ipFromLog?: string): Promise<VirtualMachine> => {
   const nextStatus = findNextVmState(currentStatus, statusFromLog)
 
   if (nextStatus === currentStatus) {
     console.log('No status change', currentStatus, nextStatus)
-    return GenericResponse.error
+    throw new Error('No status change')
   } else {
     console.log('Status change', currentStatus, nextStatus)
 
@@ -330,19 +386,20 @@ export const updateVmProvisioningStatus = async (vmId: string, action: string, q
       data: {...update},
     })
 
-    const vmOwner = updatedVm.userId
-
-    const messagePayload = {
-      vmId: vmId,
-      ...update
-    }
-
-    await sendMessageToSpecificUser(vmOwner, messagePayload)
-
     console.log('Vm status updated', vmId, nextStatus)
-    return GenericResponse.success
+    return updatedVm
   }
 }
+
+export const sendUserUpdateMessage = async (vmOwner: string, vmId: string, update: any) => {
+  const messagePayload = {
+    vmId: vmId,
+    ...update
+  }
+
+  await sendMessageToSpecificUser(vmOwner, messagePayload)
+}
+
 
 export const getExpiredVms = async () => {
   // Find vms that are in running state and have expired
@@ -366,7 +423,7 @@ export const getExpiredVms = async () => {
   })
 }
 
-const findNextVmState = (currentStatus: VmStatusType, nextStatus: VmStatusType): VmStatusType => {
+export const findNextVmState = (currentStatus: VmStatusType, nextStatus: VmStatusType): VmStatusType => {
   return validNextStates[currentStatus].includes(nextStatus) ? nextStatus : currentStatus
 }
 
@@ -437,7 +494,9 @@ const prepareVmCreationRequestMessage = (
   virtualMachine: VirtualMachine,
   template: VmTemplate,
   provider: Provider,
-  publicKey: VmPublicKey)
+  publicKey: VmPublicKey,
+  notifyVmInitStartUrlString: string,
+  notifyVmInitCompleteUrlString: string)
   : VmProvisioningRequestPayload => {
 
   const vm_name = virtualMachine.vmName
@@ -456,6 +515,8 @@ const prepareVmCreationRequestMessage = (
     image_name,
     flavor_name,
     allow_ssh_from_v4,
+    init_boot_call_url: notifyVmInitStartUrlString,
+    phone_home_url: notifyVmInitCompleteUrlString,
   }
 
   return {
@@ -495,7 +556,3 @@ const prepareVmDestroyRequestMessage = (vmId: string, provider: Provider): VmPro
     action: 'DESTROY'
   }
 }
-
-
-
-

@@ -29,3 +29,11 @@ variable "flavor_name" {}
 variable "allow_ssh_from_v4" {
   type    = list(string)
 }
+
+variable "init_boot_call_url" {
+  type = string
+}
+
+variable "phone_home_url" {
+  type = string
+}

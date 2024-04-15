@@ -34,6 +34,9 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
   case ErrorMessages.CannotCreateVmDueToServerError:
     res.status(503).json({message: err.message})
     break
+  case ErrorMessages.AppUrlInvalidOrExpired:
+    res.status(404).json({message: err.message})
+    break
   default:
     res.status(500).json({message: ErrorMessages.InternalServerError})
   }

@@ -120,6 +120,17 @@ Table provision_log {
   virtualMachine virtual_machine
 }
 
+Table app_url {
+  urlId String [pk]
+  actionType String [not null]
+  token String [unique, not null]
+  usedAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  expiresAt DateTime
+  updatedAt DateTime [default: `now()`, not null]
+  metadata Json [default: '{}']
+}
+
 Ref: virtual_machine.publicKeyId > vm_public_key.keyId
 
 Ref: virtual_machine.templateId > vm_template.templateId

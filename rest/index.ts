@@ -10,8 +10,9 @@ dotenv.config({path: envFile})
 import { initializeSocketIO } from './src/sockets'
 import authRoutes from './src/api/routes/AuthRoutes'
 import vmRoutes from './src/api/routes/VmRoutes'
-
 import messageRoutes from './src/api/routes/MessageRoute'
+import appUrlRoute from './src/api/routes/AppUrlRoute'
+
 import { handleError } from './src/api/middlewares/ErrorHandler'
 import { connectToRabbitMQ } from './src/utils/QueueUtils'
 import { initializeSentry } from './src/utils/Utils'
@@ -38,6 +39,7 @@ const port = process.env.PORT || 3000
 app.use('/api/auth', authRoutes)
 app.use('/api/vm', vmRoutes)
 app.use('/api/message', messageRoutes)
+app.use('/go', appUrlRoute)
 
 // Error handlers
 app.use(Sentry.Handlers.errorHandler())
