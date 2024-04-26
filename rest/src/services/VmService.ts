@@ -25,7 +25,6 @@ export const getAllUserVms = async (userId: string | undefined) => {
   if (!userId) {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
-  getIoInstance()
 
   const whereClause = Prisma.validator<Prisma.VirtualMachineWhereInput>()({
     userId: userId,
@@ -82,6 +81,21 @@ export const getAllVmTemplates = async () => {
     )
 }
 
+export const getUserVmQuota = async (userId: string | undefined) => {
+  if (!userId) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+
+  const allocatedQuota: number = parseInt(process.env.VM_QUOTA_PER_USER || '1')
+
+  const activeVms = await countActiveVms(userId)
+
+  return {
+    remainingQuota: allocatedQuota - activeVms,
+    allocatedQuota: allocatedQuota,
+  }
+}
+
 export const sendMessageToSpecificUser = async (userId: string, message: any) => {
   // ... your existing logic
   const user = await UserService.findUserProfileById(userId)
@@ -95,6 +109,17 @@ export const sendMessageToSpecificUser = async (userId: string, message: any) =>
     }
 
   }
+}
+
+const countActiveVms = async (userId: string) => {
+  return prisma.virtualMachine.count({
+    where: {
+      userId: userId,
+      status: {
+        notIn: [VmStatusType.DESTROYED, VmStatusType.UNKNOWN, VmStatusType.STOPPED, VmStatusType.SHUTDOWN]
+      }
+    }
+  })
 }
 
 const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: string, vmTemplateId: string, vmName: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
@@ -114,6 +139,11 @@ const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: s
 export const startVmProvisioning = async (userId: string | undefined, vmName: string, vmTemplateId: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
   if (!userId) {
     throw new Error(ErrorMessages.UserNotAuthorized)
+  }
+
+  const userQuota = await getUserVmQuota(userId)
+  if (userQuota.remainingQuota <= 0) {
+    throw new Error(ErrorMessages.VmQuotaExceeded)
   }
 
   const publicKey = await SshKeyService.findPublicKey(sshKeyId)

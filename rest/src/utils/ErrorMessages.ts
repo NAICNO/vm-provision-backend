@@ -11,4 +11,5 @@ export const ErrorMessages = {
   CannotCreateVmDueToServerError: 'Cannot create VM due to server error',
   ApiKeyNotProvided: 'API key not provided',
   AppUrlInvalidOrExpired: 'Invalid or expired URL',
+  VmQuotaExceeded: 'VM Quota exceeded',
 }

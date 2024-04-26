@@ -17,7 +17,9 @@ export const getVm = async (req: Request, res: Response) => {
 
 export const getVmTemplates = async (req: Request, res: Response) => {
   const vmTemplates = await VmService.getAllVmTemplates()
-  res.json(vmTemplates)
+  const userProfile = req.userProfile
+  const quota = await VmService.getUserVmQuota(userProfile?.userId)
+  res.json({vmTemplates, quota})
 }
 
 export const startVmProvisioning = async (req: Request, res: Response) => {
