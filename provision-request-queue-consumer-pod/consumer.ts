@@ -106,7 +106,7 @@ async function ackAndPublish(channel: Channel, msg: Message, vmId: string, actio
 
 async function createTerraformJob(vmId: string, action: string, provider: string) {
 
-  const imageName = 'europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/terraform-runner:latest'
+  const imageName = 'europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker-dev/terraform-runner:latest'
 
   const jobType = action === 'CREATE' ? 'create' : 'destroy'
   const jobName = `tf-${jobType}-job-${vmId}`

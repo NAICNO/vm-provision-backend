@@ -4,29 +4,29 @@
   "description": "Backend - VM Provisioning",
   "main": "index.ts",
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx tsc && yarn sentry:sourcemaps",
     "start": "node dist/index.js",
     "dev": "concurrently \"npx tsc -w\" \"nodemon dist/index.js\"",
     "prod": "NODE_ENV=production node dist/index.js",
     "test": "jest",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org uio-ha --project node-express ./dist && sentry-cli sourcemaps upload --org uio-ha --project node-express ./dist"
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org uio-naic --project vm-backend ./dist && sentry-cli sourcemaps upload --org uio-naic --project vm-backend ./dist"
   },
   "author": "Ashen Wijesiri",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.11.0",
-    "@sentry/cli": "^2.29.1",
-    "@sentry/node": "^7.105.0",
-    "@sentry/profiling-node": "^7.105.0",
-    "amqplib": "^0.10.3",
-    "axios": "^1.6.7",
+    "@prisma/client": "^5.16.1",
+    "@sentry/cli": "^2.32.1",
+    "@sentry/node": "^8.13.0",
+    "@sentry/profiling-node": "^8.13.0",
+    "amqplib": "^0.10.4",
+    "axios": "^1.7.2",
     "cors": "^2.8.5",
-    "croner": "^8.0.1",
+    "croner": "^8.0.2",
     "dotenv": "^16.4.5",
-    "express": "^4.18.3",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "socket.io": "^4.7.4",
+    "pg": "^8.12.0",
+    "socket.io": "^4.7.5",
     "sshpk": "^1.18.0"
   },
   "devDependencies": {
@@ -35,18 +35,19 @@
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.11.24",
-    "@types/pg": "^8.11.2",
+    "@types/node": "^20.14.9",
+    "@types/pg": "^8.11.6",
     "@types/sshpk": "^1.17.4",
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
     "concurrently": "^8.2.2",
     "eslint": "^8.51.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.0",
-    "prisma": "^5.11.0",
+    "nodemon": "^3.1.4",
+    "prisma": "^5.16.1",
     "prisma-dbml-generator": "^0.12.0",
-    "ts-jest": "^29.1.2",
-    "typescript": "^5.3.3"
-  }
+    "ts-jest": "^29.1.5",
+    "typescript": "^5.5.2"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
