@@ -1,3 +1,4 @@
+import './intstrument'
 import express, { Express } from 'express'
 import * as http from 'http'
 import dotenv from 'dotenv'
@@ -15,8 +16,6 @@ import appUrlRoute from './src/api/routes/AppUrlRoute'
 
 import { handleError } from './src/api/middlewares/ErrorHandler'
 import { connectToRabbitMQ } from './src/utils/QueueUtils'
-import { initializeSentry } from './src/utils/Utils'
-
 
 import { setupCronJobs } from './src/workers/cron'
 
@@ -26,10 +25,6 @@ const server: http.Server = http.createServer(app)
 
 initializeSocketIO(server)
 
-initializeSentry(app)
-
-app.use(Sentry.Handlers.requestHandler())
-app.use(Sentry.Handlers.tracingHandler())
 app.use(cors())
 app.use(express.json())
 
@@ -42,7 +37,7 @@ app.use('/api/message', messageRoutes)
 app.use('/go', appUrlRoute)
 
 // Error handlers
-app.use(Sentry.Handlers.errorHandler())
+Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
 
 connectToRabbitMQ()

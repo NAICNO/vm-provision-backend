@@ -1,1 +1,1 @@
-TRUNCATE TABLE provision_log, message, vm_event, virtual_machine, vm_public_key, app_url;
+TRUNCATE TABLE app_url, message, provision_log, user_activity, virtual_machine, vm_event, vm_public_key;
