@@ -13,12 +13,12 @@ generator dbml {
 }
 
 model UserActivity {
-  activityId   String    @id @default(dbgenerated("gen_random_uuid()")) @map("activity_id") @db.Uuid
-  userId       String?   @map("user_id") @db.Uuid
-  vmId         String?   @map("vm_id") @db.Uuid
-  activityType String    @map("activity_type")
+  activityId   String           @id @default(dbgenerated("gen_random_uuid()")) @map("activity_id") @db.Uuid
+  userId       String?          @map("user_id") @db.Uuid
+  vmId         String?          @map("vm_id") @db.Uuid
+  activityType UserActivityType @map("activity_type")
   description  String?
-  timestamp    DateTime? @default(now()) @db.Timestamp(6)
+  timestamp    DateTime?        @default(now()) @db.Timestamp(6)
 
   @@map("user_activity")
 }
@@ -47,7 +47,7 @@ model VirtualMachine {
   vmName       String         @map("vm_name")
   ipv4Address  String?        @map("ipv4_address")
   ipv6Address  String?        @map("ipv6_address")
-  status       String?        @map("status")
+  status       VmStatus       @map("status")
   publicKeyId  String         @map("public_key_id") @db.Uuid
   duration     Int            @map("duration")
   ipRanges     String[]       @map("ip_ranges")
@@ -68,7 +68,7 @@ model VirtualMachine {
 model VmEvent {
   eventId        String          @id @default(dbgenerated("gen_random_uuid()")) @map("event_id") @db.Uuid
   vmId           String?         @map("vm_id") @db.Uuid
-  eventType      String          @map("event_type")
+  eventType      VmEventType     @map("event_type")
   description    String?
   timestamp      DateTime?       @default(now()) @db.Timestamp(6)
   virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: Cascade, onUpdate: NoAction)
@@ -121,17 +121,17 @@ model VmPublicKey {
 }
 
 model Message {
-  messageId      String          @id @default(dbgenerated("gen_random_uuid()")) @map("message_id") @db.Uuid
-  queueName      String          @map("queue_name")
-  message        String          @map("message")
-  userId         String?         @map("user_id") @db.Uuid
-  vmId           String?         @map("vm_id") @db.Uuid
-  metadata       String?         @default("{}") @map("metadata")
-  status         String          @map("status")
-  createdAt      DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt      DateTime?       @default(now()) @map("updated_at") @db.Timestamp(6)
-  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
-  userProfile    UserProfile?    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  messageId      String               @id @default(dbgenerated("gen_random_uuid()")) @map("message_id") @db.Uuid
+  queueName      String               @map("queue_name")
+  message        String               @map("message")
+  userId         String?              @map("user_id") @db.Uuid
+  vmId           String?              @map("vm_id") @db.Uuid
+  metadata       String?              @default("{}") @map("metadata")
+  status         MessagePublishStatus @map("status")
+  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime?            @default(now()) @map("updated_at") @db.Timestamp(6)
+  virtualMachine VirtualMachine?      @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
+  userProfile    UserProfile?         @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("message")
 }
@@ -149,14 +149,69 @@ model ProvisionLog {
 }
 
 model AppUrl {
-  urlId      String    @id @default(dbgenerated("gen_random_uuid()")) @map("url_id") @db.Uuid
-  actionType String    @map("action_type")
-  token      String    @unique @map("token")
-  usedAt     DateTime? @map("used_at")
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  expiresAt  DateTime? @map("expires_at") @db.Timestamp(6)
-  updatedAt  DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
-  metadata   Json?     @default("{}") @map("metadata")
+  urlId     String    @id @default(dbgenerated("gen_random_uuid()")) @map("url_id") @db.Uuid
+  action    UrlAction @map("action")
+  token     String    @unique @map("token")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt DateTime? @map("expires_at") @db.Timestamp(6)
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+  metadata  Json?     @default("{}") @map("metadata")
 
   @@map("app_url")
+}
+
+enum UserActivityType {
+  USER_CREATED
+  USER_LOGIN_SUCCESS
+  USER_LOGIN_FAILED
+  USER_LOGGED_OUT
+  USER_DELETED
+  USER_UPDATED
+  USER_TOKEN_REFRESHED
+  USER_TOKEN_REFRESH_FAILED
+  VM_CREATION_REQUESTED
+  VM_DESTROY_REQUESTED
+}
+
+enum VmEventType {
+  PROVISIONING_REQUESTED
+  PROVISIONING_QUEUED
+  PROVISIONING_STARTED
+  PROVISIONING_COMPLETED
+  PROVISIONING_FAILED
+  DESTROYING_REQUESTED
+  RUNNING
+  STOPPED
+  SHUTDOWN
+  UNKNOWN
+}
+
+enum VmStatus {
+  UNKNOWN
+  TO_BE_PROVISIONED
+  PLANNING
+  PLANNING_COMPLETED
+  PROVISIONING
+  PROVISIONING_COMPLETED
+  PROVISIONING_FAILED
+  INITIALIZING
+  RUNNING
+  STOPPED
+  SHUTDOWN
+  TO_BE_DESTROYED
+  DESTROYING
+  DESTROYED
+}
+
+enum MessagePublishStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+enum UrlAction {
+  NOTIFY_VM_INITIALIZE_START
+  NOTIFY_VM_INITIALIZE_COMPLETE
+  NOTIFY_VM_DESTROY_START
 }

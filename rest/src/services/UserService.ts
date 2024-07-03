@@ -1,7 +1,6 @@
 import { prisma } from '../models/PrismaClient'
-import { UserProfile } from '@prisma/client'
+import { UserProfile, UserActivityType } from '@prisma/client'
 import { getFirstName, getLastName } from '../utils/Utils'
-import { UserActivityType } from '../utils/UserActivityType'
 
 export const createUserProfileWithIdToken = async (idToken: any) => {
   const {email, user, name} = idToken
@@ -47,7 +46,7 @@ export const logUserActivity = async (userId: string, activityType: UserActivity
     data: {
       userId: userId,
       vmId: data?.vmId,
-      activityType: activityType.toString(),
+      activityType: activityType,
       description: description,
     },
   })

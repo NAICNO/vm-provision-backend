@@ -1,6 +1,6 @@
 import { prisma } from '../models/PrismaClient'
 import { TFProgressLog } from '../types/TFProgressLog'
-import { VmStatusType } from '../utils/VmStatusType'
+import { VmStatus } from '@prisma/client'
 
 export const createProvisionLog = async (vmId: string, action: string, queueName: string, logMessage: any) => {
   return prisma.provisionLog.create({
@@ -33,10 +33,10 @@ export const convertToTFProgressLog = (obj: any): TFProgressLog | null => {
 }
 
 export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): {
-  status: VmStatusType,
+  status: VmStatus,
   ip: string | undefined
 } => {
-  let status = VmStatusType.UNKNOWN
+  let status : VmStatus = VmStatus.UNKNOWN
   let ip: string | undefined = undefined
 
   const logType = log.type
@@ -44,10 +44,10 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   if (initiatedTypes.includes(logType)) {
     switch (action) {
     case 'CREATE':
-      status = VmStatusType.TO_BE_PROVISIONED
+      status = VmStatus.TO_BE_PROVISIONED
       break
     case 'DESTROY':
-      status = VmStatusType.TO_BE_DESTROYED
+      status = VmStatus.TO_BE_DESTROYED
       break
     }
   }
@@ -56,7 +56,7 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   if (refreshTypes.includes(logType)) {
     switch (action) {
     case 'DESTROY':
-      status = VmStatusType.TO_BE_DESTROYED
+      status = VmStatus.TO_BE_DESTROYED
       break
     }
   }
@@ -65,10 +65,10 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   if (planningTypes.includes(logType)) {
     switch (action) {
     case 'CREATE':
-      status = VmStatusType.PLANNING
+      status = VmStatus.PLANNING
       break
     case 'DESTROY':
-      status = VmStatusType.TO_BE_DESTROYED
+      status = VmStatus.TO_BE_DESTROYED
       break
     }
   }
@@ -77,10 +77,10 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   if (planningCompletedTypes.includes(logType)) {
     switch (action) {
     case 'CREATE':
-      status = VmStatusType.PLANNING_COMPLETED
+      status = VmStatus.PLANNING_COMPLETED
       break
     case 'DESTROY':
-      status = VmStatusType.TO_BE_DESTROYED
+      status = VmStatus.TO_BE_DESTROYED
       break
     }
   }
@@ -89,10 +89,10 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   if (provisioningTypes.includes(logType)) {
     switch (action) {
     case 'CREATE':
-      status = VmStatusType.PROVISIONING
+      status = VmStatus.PROVISIONING
       break
     case 'DESTROY':
-      status = VmStatusType.DESTROYING
+      status = VmStatus.DESTROYING
       break
     }
   }
@@ -100,15 +100,15 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
   const destroyCompletedTypes = ['change_summary'] // Destroy completed is same as planning completed
   if (destroyCompletedTypes.includes(logType)) {
     if (log['@message'].includes('Destroy complete!')) {
-      status = VmStatusType.DESTROYED
+      status = VmStatus.DESTROYED
     }
   }
 
   if (logType === 'outputs') {
     switch (action) {
     case 'CREATE': {
-      if (log.outputs?.vm_provision_status?.value === VmStatusType.PROVISIONING_COMPLETED) {
-        status = VmStatusType.PROVISIONING_COMPLETED
+      if (log.outputs?.vm_provision_status?.value === VmStatus.PROVISIONING_COMPLETED) {
+        status = VmStatus.PROVISIONING_COMPLETED
         ip = log.outputs?.vm_ip?.value || undefined
       }
       break

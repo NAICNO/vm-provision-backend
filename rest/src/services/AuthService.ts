@@ -1,8 +1,9 @@
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import axios from 'axios'
+import { UserActivityType } from '@prisma/client'
+
 import { ErrorMessages } from '../utils/ErrorMessages'
 import * as UserService from './UserService'
-import { UserActivityType } from '../utils/UserActivityType'
 
 export const fetchTokens = async (code: string, nonce: string) => {
 
