@@ -11,3 +11,8 @@ This command will:
 * Regenerate Prisma Client
 
 Refer to the [Evolve your schema.](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases/evolve-your-schema-typescript-postgresql)
+
+
+### View DBML schema:
+* Go to [DBML schema](https://dbdiagram.io/d/60f3b1b4dd6a5971481b1b3d)
+* Copy and paste the ```dbml/schema.dbml``` file content to view the schema.

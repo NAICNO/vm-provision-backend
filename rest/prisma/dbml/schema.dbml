@@ -6,7 +6,7 @@ Table user_activity {
   activityId String [pk]
   userId String
   vmId String
-  activityType String [not null]
+  activityType UserActivityType [not null]
   description String
   timestamp DateTime [default: `now()`]
 }
@@ -33,7 +33,7 @@ Table virtual_machine {
   vmName String [not null]
   ipv4Address String
   ipv6Address String
-  status String
+  status VmStatus [not null]
   publicKeyId String [not null]
   duration Int [not null]
   ipRanges String[] [not null]
@@ -52,7 +52,7 @@ Table virtual_machine {
 Table vm_event {
   eventId String [pk]
   vmId String
-  eventType String [not null]
+  eventType VmEventType [not null]
   description String
   timestamp DateTime [default: `now()`]
   virtualMachine virtual_machine
@@ -103,7 +103,7 @@ Table message {
   userId String
   vmId String
   metadata String [default: '{}']
-  status String [not null]
+  status MessagePublishStatus [not null]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
   virtualMachine virtual_machine
@@ -122,13 +122,68 @@ Table provision_log {
 
 Table app_url {
   urlId String [pk]
-  actionType String [not null]
+  action UrlAction [not null]
   token String [unique, not null]
   usedAt DateTime
   createdAt DateTime [default: `now()`, not null]
   expiresAt DateTime
   updatedAt DateTime [default: `now()`, not null]
   metadata Json [default: '{}']
+}
+
+Enum UserActivityType {
+  USER_CREATED
+  USER_LOGIN_SUCCESS
+  USER_LOGIN_FAILED
+  USER_LOGGED_OUT
+  USER_DELETED
+  USER_UPDATED
+  USER_TOKEN_REFRESHED
+  USER_TOKEN_REFRESH_FAILED
+  VM_CREATION_REQUESTED
+  VM_DESTROY_REQUESTED
+}
+
+Enum VmEventType {
+  PROVISIONING_REQUESTED
+  PROVISIONING_QUEUED
+  PROVISIONING_STARTED
+  PROVISIONING_COMPLETED
+  PROVISIONING_FAILED
+  DESTROYING_REQUESTED
+  RUNNING
+  STOPPED
+  SHUTDOWN
+  UNKNOWN
+}
+
+Enum VmStatus {
+  UNKNOWN
+  TO_BE_PROVISIONED
+  PLANNING
+  PLANNING_COMPLETED
+  PROVISIONING
+  PROVISIONING_COMPLETED
+  PROVISIONING_FAILED
+  INITIALIZING
+  RUNNING
+  STOPPED
+  SHUTDOWN
+  TO_BE_DESTROYED
+  DESTROYING
+  DESTROYED
+}
+
+Enum MessagePublishStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+Enum UrlAction {
+  NOTIFY_VM_INITIALIZE_START
+  NOTIFY_VM_INITIALIZE_COMPLETE
+  NOTIFY_VM_DESTROY_START
 }
 
 Ref: virtual_machine.publicKeyId > vm_public_key.keyId

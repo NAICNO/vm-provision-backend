@@ -1,15 +1,15 @@
 import * as crypto from 'crypto'
-import { prisma } from '../models/PrismaClient'
-import { UrlActionType } from '../utils/UrlActionType'
-import { AppUrl, PrismaClient } from '@prisma/client'
-import * as VmService from './VmService'
-import { ErrorMessages } from '../utils/ErrorMessages'
+import { AppUrl, PrismaClient, UrlAction } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
-export const createAppUrl = async (tx: Omit<PrismaClient, ITXClientDenyList>, action: UrlActionType, metadata: any): Promise<AppUrl> => {
+import { prisma } from '../models/PrismaClient'
+import * as VmService from './VmService'
+import { ErrorMessages } from '../utils/ErrorMessages'
+
+export const createAppUrl = async (tx: Omit<PrismaClient, ITXClientDenyList>, action: UrlAction, metadata: any): Promise<AppUrl> => {
   return tx.appUrl.create({
     data: {
-      actionType: action,
+      action: action,
       token: generateToken(),
       metadata: metadata,
     }
@@ -30,11 +30,11 @@ export const findAppUrl = async (token: string): Promise<AppUrl> => {
 
 export const handleAppUrl = async (appUrl: AppUrl) => {
 
-  const actionType = appUrl.actionType
+  const actionType = appUrl.action
 
   switch (actionType) {
-  case UrlActionType.NOTIFY_VM_INITIALIZE_START:
-  case UrlActionType.NOTIFY_VM_INITIALIZE_COMPLETE: {
+  case UrlAction.NOTIFY_VM_INITIALIZE_START:
+  case UrlAction.NOTIFY_VM_INITIALIZE_COMPLETE: {
     const metadata = appUrl.metadata as Record<string, unknown>
     const vmId = metadata['vmId'] as string
     await VmService.updateVmProvisioningStatusByRestCallback(vmId, actionType)
