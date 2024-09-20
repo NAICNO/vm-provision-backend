@@ -17,7 +17,7 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
     res.status(401).json({message: err.message})
     break
   case ErrorMessages.TokenRefreshFailed:
-    res.status(403).json({message: err.message})
+    res.status(401).json({message: err.message})
     break
   case ErrorMessages.TokenCannotBeObtained:
     res.status(403).json({message: err.message})

@@ -4,6 +4,9 @@ import * as http from 'http'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import * as Sentry from '@sentry/node'
+import session from 'express-session'
+import RedisStore from 'connect-redis'
+import { createClient } from 'redis'
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
 dotenv.config({path: envFile})
@@ -19,14 +22,49 @@ import { connectToRabbitMQ } from './src/utils/QueueUtils'
 
 import { setupCronJobs } from './src/workers/cron'
 
+const redisClient = createClient({
+  url: process.env.REDIS_URL,
+  password: process.env.REDIS_PASSWORD,
+})
+
+redisClient
+  .connect()
+  .then(() => {
+    console.log('Redis connection established')
+  })
+  .catch(error => {
+    console.error('Redis connection error:', error)
+  })
+
+const redisStore = new RedisStore({
+  client: redisClient,
+  prefix: 'naic:',
+  ttl: 24 * 60 * 60,
+})
+
 
 const app: Express = express()
 const server: http.Server = http.createServer(app)
 
 initializeSocketIO(server)
 
-app.use(cors())
+app.use(cors({
+  origin: 'http://localhost:8080',
+  credentials: true
+}))
 app.use(express.json())
+app.use(
+  session({
+    store: redisStore,
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    }
+  })
+)
 
 const port = process.env.PORT || 3000
 

@@ -1,13 +1,62 @@
 import { NextFunction, Request, Response } from 'express'
 import * as AuthService from '../../services/AuthService'
 
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export async function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
   try {
-    const authHeader = req.headers['authorization'] || ''
-    req.userProfile = await AuthService.validateAccessToken(authHeader)
+    // Check if user is authenticated
+    if (!req.session || !req.session.idToken) {
+      return res.status(401).json({error: 'Unauthorized'})
+    }
+
+    const now = new Date()
+
+    // Check if access token exists and is expired
+    if (!req.session.accessToken || !req.session.accessTokenExpiresAt) {
+      return res.status(401).json({error: 'Access token not available'})
+    }
+
+    if (now >= req.session.accessTokenExpiresAt) {
+      console.log('Access token expired, refreshing...')
+
+      // Check if refresh token is available and not expired
+      if (!req.session.refreshToken || !req.session.refreshTokenExpiresAt) {
+        return res.status(401).json({error: 'Refresh token not available or expired'})
+      }
+
+      if (now >= req.session.refreshTokenExpiresAt) {
+        return res.status(401).json({error: 'Refresh token expired'})
+      }
+
+      const {idToken, accessToken, refreshToken} = await AuthService.refreshTokens(req.session.refreshToken)
+
+
+      // Decode new tokens to get expiration times
+      const accessTokenExpiresAt = new Date(AuthService.getExpirationOfToken(accessToken) * 1000)
+
+      let refreshTokenExpiresAt = req.session.refreshTokenExpiresAt
+      if (refreshToken) {
+        refreshTokenExpiresAt = new Date(AuthService.getExpirationOfToken(refreshToken) * 1000)
+      }
+
+      // Update session with new tokens and expiration times
+      req.session.idToken = idToken
+      req.session.accessToken = accessToken
+      req.session.accessTokenExpiresAt = accessTokenExpiresAt
+
+      if (refreshToken) {
+        req.session.refreshToken = refreshToken
+        req.session.refreshTokenExpiresAt = refreshTokenExpiresAt
+      }
+
+      console.log('Tokens refreshed successfully')
+    }
+
     next()
   } catch (error) {
-    next(error)
+    console.error('Authentication error:', error)
+    req.session.destroy(() => {
+      return res.status(401).json({error: 'Authentication error'})
+    })
   }
 }
 

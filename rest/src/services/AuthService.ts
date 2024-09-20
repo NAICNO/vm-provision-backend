@@ -4,6 +4,8 @@ import { UserActivityType } from '@prisma/client'
 
 import { ErrorMessages } from '../utils/ErrorMessages'
 import * as UserService from './UserService'
+import * as queryString from 'node:querystring'
+import jwksClient from 'jwks-rsa'
 
 export const fetchTokens = async (code: string, nonce: string) => {
 
@@ -25,36 +27,31 @@ export const fetchTokens = async (code: string, nonce: string) => {
     )
 
     const {access_token, id_token, refresh_token} = response.data
-    const signedAccessToken = signAccessToken(access_token)
 
-    const decodedIdToken = decodeIdToken(id_token) as JwtPayload
-
-    let userProfile = await UserService.findUserProfileByUsername(decodedIdToken.user)
-
-    if (!userProfile) {
-      userProfile = await UserService.createUserProfileWithIdToken(decodedIdToken)
-    }
-
-    await UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS, null)
+    const user = await validateIdToken(id_token)
 
     return {
-      accessToken: signedAccessToken,
+      accessToken: access_token,
       idToken: id_token,
       refreshToken: refresh_token,
+      oidcUser: user
     }
   } catch (error) {
-    console.error('Error fetching external tokens:', error)
+    console.log('Error fetching external tokens')
     throw new Error(ErrorMessages.TokenCannotBeObtained)
-
   }
 }
 
-export const refreshTokens = async (refreshToken: string, scope: string) => {
+export const getExpirationOfToken = (token: string): number => {
+  const decoded = jwt.decode(token) as JwtPayload
+  return decoded.exp
+}
 
+export const refreshTokens = async (refreshToken: string) => {
   const data = {
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
-    scope: scope,
+    scope: 'openid profile email',
   }
 
   try {
@@ -66,73 +63,42 @@ export const refreshTokens = async (refreshToken: string, scope: string) => {
         },
       }
     )
-    const {access_token, id_token, refresh_token} = response.data
-    const signedAccessToken = signAccessToken(access_token)
 
-    const decodedIdToken = decodeIdToken(id_token) as JwtPayload
-    const userProfile = await UserService.findUserProfileByUsername(decodedIdToken.user)
-    if (!userProfile) {
-      throw new Error(`User not found - ${decodedIdToken.user}`)
-    }
-    UserService.logUserActivity(userProfile.userId, UserActivityType.USER_TOKEN_REFRESHED, null)
+    const {access_token, id_token, refresh_token} = response.data
+
+    const user = await validateIdToken(id_token)
+
     return {
-      accessToken: signedAccessToken,
+      accessToken: access_token,
       idToken: id_token,
       refreshToken: refresh_token,
+      oidcUser: user
     }
   } catch (error) {
-    console.error('Cannot refresh token', error)
-    const logData = error instanceof Error ? error.message : ''
-    UserService.logUserActivity('', UserActivityType.USER_TOKEN_REFRESH_FAILED, {message: logData})
     throw new Error(ErrorMessages.TokenRefreshFailed)
   }
 }
 
 
-export const validateAccessToken = async (authHeader: string) => {
-  if (!authHeader) {
-    throw new Error(ErrorMessages.TokenNotProvided)
-  }
-
-  const token = authHeader.split(' ')[1]
-  if (token === null) {
-    throw new Error(ErrorMessages.TokenNotProvided)
-  }
-
-  const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET
-  if (!accessTokenSecret) {
-    throw new Error(ErrorMessages.TokenSecretNotProvided)
-  }
-
-  try {
-    const verifiedJwt = jwt.verify(token, accessTokenSecret)
-
-    if (typeof verifiedJwt !== 'object' || !verifiedJwt.id || !verifiedJwt.exp) {
-      throw new Error(ErrorMessages.TokenInvalid)
-    }
-
-    const isExpired = validateAccessTokenExpiration(verifiedJwt.exp)
-    if (isExpired) {
-      throw new Error(ErrorMessages.TokenExpired)
-    }
-    const userId = verifiedJwt.id
-    console.log('userId', userId)
-    const userProfile = await UserService.findUserProfileByUsername(userId)
-    if (!userProfile) {
-      UserService.logUserActivity(userId, 'USER_LOGIN_FAILED', {message: 'User not found'})
-      throw new Error(ErrorMessages.UserNotFound)
-    }
-    return userProfile
-  } catch (err) {
-    console.log('err', err)
-    if (err instanceof Error && err.message === 'TokenExpiredError: jwt expired') {
-      throw new Error(ErrorMessages.TokenExpired)
-    }
-    if (err instanceof Error && (err.message === ErrorMessages.TokenExpired || err.message === ErrorMessages.UserNotFound)) {
-      throw err
-    }
-    throw new Error(ErrorMessages.TokenInvalid)
-  }
+export function validateIdToken(token: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    jwt.verify(
+      token,
+      getKey,
+      {
+        algorithms: ['RS256'],
+        issuer: 'https://oidc.fp.educloud.no/ec-oidc-provider/',
+        audience: process.env.AUTH_CLIENT_ID,
+      },
+      (err, decoded) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(decoded)
+        }
+      }
+    )
+  })
 }
 
 export const validateApiKey = async (apiKey: string) => {
@@ -169,7 +135,26 @@ export const signAccessToken = (accessToken: string) => {
 }
 
 
-const validateAccessTokenExpiration = (timestamp: number): boolean => {
-  const now = Math.floor(Date.now() / 1000)
-  return now > timestamp
+const client = jwksClient({
+  jwksUri: 'https://oidc.fp.educloud.no/ec-oidc-provider/jwk',
+})
+
+function getKey(header: any, callback: any) {
+  client.getSigningKey(header.kid, function (err, key) {
+    if (err) {
+      callback(err, null)
+    } else {
+      const signingKey = key.getPublicKey()
+      callback(null, signingKey)
+    }
+  })
+}
+
+export const getLogoutUrl = (idTokenHint: string) => {
+  return `${process.env.AUTH_END_SESSION_URL}?${queryString.stringify(
+    {
+      id_token_hint: idTokenHint,
+      post_logout_redirect_uri: process.env.AUTH_LOGOUT_REDIRECT_URL,
+    }
+  )}`
 }

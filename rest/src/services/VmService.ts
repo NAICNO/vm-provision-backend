@@ -31,7 +31,7 @@ import * as LogService from './LogService'
 import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/UrlActionUtils'
 import { getFullAppUrl } from './AppUrlService'
 
-export const getAllUserVms = async (userId: string | undefined) => {
+export const getAllUserVms = async (userId: string | undefined, showArchived: boolean) => {
   if (!userId) {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
@@ -64,7 +64,6 @@ export const getAllUserVms = async (userId: string | undefined) => {
 
   const orderByClause = Prisma.validator<Prisma.VirtualMachineOrderByWithAggregationInput>()({
     createdAt: 'desc',
-
   })
 
   return prisma.virtualMachine.findMany({
