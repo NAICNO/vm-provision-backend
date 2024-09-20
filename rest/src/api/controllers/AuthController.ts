@@ -1,26 +1,62 @@
 import { NextFunction, Request, Response } from 'express'
 import * as AuthService from '../../services/AuthService'
+import * as UserService from '../../services/UserService'
+import { UserActivityType } from '@prisma/client'
 
-export const getTokens = async (req: Request, res: Response, next: NextFunction) => {
-
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const code = typeof req.query.code === 'string' ? req.query.code : ''
-    const nonce = typeof req.query.nonce === 'string' ? req.query.nonce : ''
+    const {code, nonce} = req.body
 
-    const tokens = await AuthService.fetchTokens(code, nonce)
-    res.json({...tokens})
+    const {idToken, accessToken, refreshToken, oidcUser} = await AuthService.fetchTokens(code, nonce)
+
+    const accessTokenExpiresAt = AuthService.getExpirationOfToken(accessToken)
+    const refreshTokenExpiresAt = AuthService.getExpirationOfToken(refreshToken)
+
+    console.log('User authenticated')
+
+    let userProfile = await UserService.findUserProfileByEmail(oidcUser.email)
+
+    if (!userProfile) {
+      userProfile = await UserService.createUserProfileWithOidcUser(oidcUser)
+    }
+
+    const sanitizedUserProfile = UserService.sanitizeUserProfile(userProfile)
+
+    req.session.idToken = idToken
+    req.session.accessToken = accessToken
+    req.session.refreshToken = refreshToken
+    req.session.accessTokenExpiresAt = new Date(accessTokenExpiresAt * 1000)
+    req.session.refreshTokenExpiresAt = new Date(refreshTokenExpiresAt * 1000)
+    req.session.user = sanitizedUserProfile
+
+    res.json({success: true, user: sanitizedUserProfile})
+
+    await UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS, null)
   } catch (error) {
     next(error)
   }
 }
 
-export const refreshTokens = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const refreshToken = typeof req.query.refreshToken === 'string' ? req.query.refreshToken : ''
-    const scope = typeof req.query.scope === 'string' ? req.query.scope : ''
-    const tokens = await AuthService.refreshTokens(refreshToken, scope)
-    res.json({...tokens})
-  } catch (error) {
-    next(error)
+
+export const getAuthStatus = async (req: Request, res: Response) => {
+  if (req.session && req.session.idToken) {
+    res.json({
+      isAuthenticated: true,
+      user: req.session.user,
+    })
+  } else {
+    res.json({
+      authenticated: false,
+      user: null,
+    })
   }
+}
+
+
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
+  const idTokenHint = req.session.idToken
+  req.session.destroy(() => {
+    const logoutUrl = AuthService.getLogoutUrl(idTokenHint)
+    res.json({logoutUrl})
+  })
 }

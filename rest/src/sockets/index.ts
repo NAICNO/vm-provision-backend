@@ -40,7 +40,6 @@ export const initializeSocketIO = (server: http.Server) => {
     socket.on('message', (message) => {
       console.log('message', message, socket.id)
       vmNamespace.emit('message', socket.id)
-      console.log('userSocketMap', userSocketMap)
     })
   })
 

@@ -9,11 +9,11 @@ import {
   requestVmDestroy,
   startVmProvisioning,
 } from '../controllers/VmController'
-import { authenticateToken } from '../middlewares/AuthMiddleware'
+import { ensureAuthenticated } from '../middlewares/AuthMiddleware'
 
 const router = express.Router()
 
-router.use(authenticateToken)
+router.use(ensureAuthenticated)
 router.get('/', getAllUserVms)
 router.get('/templates', getVmTemplates)
 router.get('/ssh/keys', getPublicKeys)
