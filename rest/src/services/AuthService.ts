@@ -44,6 +44,9 @@ export const fetchTokens = async (code: string, nonce: string) => {
 
 export const getExpirationOfToken = (token: string): number => {
   const decoded = jwt.decode(token) as JwtPayload
+  if(!decoded.exp) {
+    throw new Error(ErrorMessages.UserNotAuthorized)
+  }
   return decoded.exp
 }
 
@@ -144,13 +147,13 @@ function getKey(header: any, callback: any) {
     if (err) {
       callback(err, null)
     } else {
-      const signingKey = key.getPublicKey()
+      const signingKey = key?.getPublicKey()
       callback(null, signingKey)
     }
   })
 }
 
-export const getLogoutUrl = (idTokenHint: string) => {
+export const getLogoutUrl = (idTokenHint: string | null) => {
   return `${process.env.AUTH_END_SESSION_URL}?${queryString.stringify(
     {
       id_token_hint: idTokenHint,

@@ -54,7 +54,7 @@ export const getAuthStatus = async (req: Request, res: Response) => {
 
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
-  const idTokenHint = req.session.idToken
+  const idTokenHint = req.session.idToken || null
   req.session.destroy(() => {
     const logoutUrl = AuthService.getLogoutUrl(idTokenHint)
     res.json({logoutUrl})
