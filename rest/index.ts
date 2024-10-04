@@ -1,4 +1,4 @@
-import './intstrument'
+import './instrument'
 import express, { Express } from 'express'
 import * as http from 'http'
 import dotenv from 'dotenv'
@@ -20,7 +20,7 @@ import appUrlRoute from './src/api/routes/AppUrlRoute'
 import { handleError } from './src/api/middlewares/ErrorHandler'
 import { connectToRabbitMQ } from './src/utils/QueueUtils'
 
-import { setupCronJobs } from './src/workers/cron'
+import  './src/cronJobs'
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
@@ -75,12 +75,10 @@ app.use('/api/message', messageRoutes)
 app.use('/go', appUrlRoute)
 
 // Error handlers
-Sentry.setupExpressErrorHandler(app)
+ Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
 
 connectToRabbitMQ()
-
-setupCronJobs()
 
 server.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`)

@@ -1,15 +1,16 @@
 import { Request, Response } from 'express'
+
 import * as VmService from '../../services/VmService'
 import * as SshKeyService from '../../services/SshKeyService'
 
-export const getAllUserVms = async (req: Request, res: Response) => {
-  const userProfile = req.session.user
-  const machines = await VmService.getAllUserVms(userProfile?.userId, false)
+export const getAllVmsOfUser = async (req: Request, res: Response) => {
+  const userProfile = req.session.user!
+  const machines = await VmService.getAllVmsOfUserWithTemplates(userProfile.userId)
   res.json(machines)
 }
 
 export const getVm = async (req: Request, res: Response) => {
-  const userProfile = req.session.user
+  const userProfile = req.session.user!
   const vmId = req.params.vmId
   const vmData = await VmService.getVmOfUserById(vmId, userProfile?.userId)
   res.json(vmData)
@@ -41,13 +42,13 @@ export const startVmProvisioning = async (req: Request, res: Response) => {
 }
 
 export const getPublicKeys = async (req: Request, res: Response) => {
-  const sshKeys = await SshKeyService.getAllUserSshKeys(req.session.user?.userId)
+  const sshKeys = await SshKeyService.getAllUserSshKeys(req.session.user!.userId)
   res.json(sshKeys)
 }
 
 export const createSSHKeyPair = async (req: Request, res: Response) => {
   const keyName = req.body.keyName
-  const keyData = await SshKeyService.createSSHKeyPair(req.session.user?.userId, keyName)
+  const keyData = await SshKeyService.createSSHKeyPair(req.session.user!.userId, keyName)
   res.json(keyData)
 }
 

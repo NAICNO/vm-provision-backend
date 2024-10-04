@@ -5,3 +5,5 @@ export const ALLOWED_IP_RANGES = ['193.157.0.0/16', '84.214.3.169/32']
 
 export const VM_MINIMUM_DURATION = 1
 export const VM_MAXIMUM_DURATION = 48
+
+export const REAUTH_TIME_LIMIT_MINUTES = 5
