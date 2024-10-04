@@ -2,7 +2,7 @@ import express from 'express'
 import {
   archiveVm,
   createSSHKeyPair,
-  getAllUserVms,
+  getAllVmsOfUser,
   getPublicKeys,
   getVm,
   getVmTemplates,
@@ -14,7 +14,7 @@ import { ensureAuthenticated } from '../middlewares/AuthMiddleware'
 const router = express.Router()
 
 router.use(ensureAuthenticated)
-router.get('/', getAllUserVms)
+router.get('/', getAllVmsOfUser)
 router.get('/templates', getVmTemplates)
 router.get('/ssh/keys', getPublicKeys)
 router.post('/ssh/create', createSSHKeyPair)

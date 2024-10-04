@@ -20,38 +20,24 @@ import * as UserService from './UserService'
 import * as MessageQueueService from './MessageQueueService'
 import * as SshKeyService from './SshKeyService'
 import * as AppUrlService from './AppUrlService'
+import * as SocketService from './SocketService'
 import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates } from '../utils/VmStatusUtils'
 import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { GenericResponse } from '../types/GenericResponse'
-import { getIoInstance, getSocketIdByUsername } from '../sockets'
-import { WebSocketEventType } from '../utils/WebSocketEventType'
+
 import { getFolderNameForProvider } from '../utils/Utils'
 import * as LogService from './LogService'
 import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/UrlActionUtils'
 import { getFullAppUrl } from './AppUrlService'
 
-export const getAllUserVms = async (userId: string | undefined, showArchived: boolean) => {
+export const getAllVmsOfUserWithTemplates = async (userId: string) => {
   if (!userId) {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
 
   const whereClause = Prisma.validator<Prisma.VirtualMachineWhereInput>()({
     userId: userId,
-    OR: [
-      {
-        metadata: {
-          path: ['archived'],
-          equals: Prisma.AnyNull
-        }
-      },
-      {
-        metadata: {
-          path: ['archived'],
-          equals: false
-        }
-      }
-    ]
   })
 
   const includeClause = Prisma.validator<Prisma.VirtualMachineInclude>()({
@@ -70,6 +56,14 @@ export const getAllUserVms = async (userId: string | undefined, showArchived: bo
     where: whereClause,
     include: includeClause,
     orderBy: orderByClause,
+  })
+}
+
+export const getAllVmsOfUser = async (userId: string) => {
+  return prisma.virtualMachine.findMany({
+    where: {
+      userId: userId,
+    }
   })
 }
 
@@ -102,21 +96,6 @@ export const getUserVmQuota = async (userId: string | undefined) => {
   return {
     remainingQuota: allocatedQuota - activeVms,
     allocatedQuota: allocatedQuota,
-  }
-}
-
-export const sendMessageToSpecificUser = async (userId: string, message: any) => {
-  // ... your existing logic
-  const user = await UserService.findUserProfileById(userId)
-
-  if (user) {
-    const io = getIoInstance()
-    const socketID = getSocketIdByUsername(user.username)
-    const namespace = process.env.SOCKET_NAMESPACE_VM || '/vm'
-    if (socketID) {
-      io.of(namespace).to(socketID).emit(WebSocketEventType.PROVISIONING_UPDATE, message)
-    }
-
   }
 }
 
@@ -168,7 +147,7 @@ export const startVmProvisioning = async (userId: string | undefined, vmName: st
 
     const vmId = virtualMachine.vmId
 
-    UserService.logUserActivity(userId, UserActivityType.VM_CREATION_REQUESTED, {vmId: vmId})
+    UserService.logUserActivity(userId, UserActivityType.VM_CREATION_REQUESTED, '', {vmId: vmId})
     logVmEvent(vmId, VmEventType.PROVISIONING_REQUESTED, null)
 
     await MessageQueueService.publishMessage(queueName, message)
@@ -208,7 +187,7 @@ export const startVmDestroy = async (vm: VirtualMachine) => {
     message
   } = await destroyVmInTransaction(vm, provider)
 
-  await UserService.logUserActivity(vm.userId, UserActivityType.VM_DESTROY_REQUESTED, {vmId: vm.vmId})
+  UserService.logUserActivity(vm.userId, UserActivityType.VM_DESTROY_REQUESTED, '', {vmId: vm.vmId})
   logVmEvent(vm.vmId, VmEventType.DESTROYING_REQUESTED, null)
 
   await MessageQueueService.publishMessage(queueName, message)
@@ -436,7 +415,7 @@ export const sendUserUpdateMessage = async (vmOwner: string, vmId: string, updat
     ...update
   }
 
-  await sendMessageToSpecificUser(vmOwner, messagePayload)
+  await SocketService.sendMessageToSpecificUser(vmOwner, messagePayload)
 }
 
 
@@ -475,37 +454,21 @@ export const getVmById = async (vmId: string) => {
   })
 }
 
-export const getVmOfUserById = async (vmId: string, userId: string | undefined) => {
-  try {
-    if (!userId || !vmId) {
-      throw new Error(ErrorMessages.UserNotAuthorized)
-    }
-    return await prisma.virtualMachine.findUniqueOrThrow({
-      where: {
-        vmId: vmId,
-        userId: userId,
-      },
-      include: {
-        vmTemplate: {
-          include: {
-            provider: true,
-          }
-        },
-        publicKey: true,
-      },
-    })
-  } catch (e) {
-    const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmId: vmId,
-          userId: userId,
+export const getVmOfUserById = async (vmId: string, userId: string) => {
+  return prisma.virtualMachine.findUniqueOrThrow({
+    where: {
+      vmId: vmId,
+      userId: userId,
+    },
+    include: {
+      vmTemplate: {
+        include: {
+          provider: true,
         }
-      }
-    })
-    throw error
-  }
+      },
+      publicKey: true,
+    },
+  })
 }
 
 const getVmTemplateById = async (templateId: string) => {

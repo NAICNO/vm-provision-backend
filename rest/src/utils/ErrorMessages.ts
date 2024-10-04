@@ -8,8 +8,11 @@ export const ErrorMessages = {
   TokenCannotBeObtained: 'Token cannot be obtained',
   UserNotFound: 'User not found',
   UserNotAuthorized: 'User unauthorized',
+  UserDisabled: 'User disabled',
+  UserPendingDeletion: 'User pending deletion',
   CannotCreateVmDueToServerError: 'Cannot create VM due to server error',
   ApiKeyNotProvided: 'API key not provided',
   AppUrlInvalidOrExpired: 'Invalid or expired URL',
   VmQuotaExceeded: 'VM Quota exceeded',
+  NoVmFound: 'No VM found',
 }

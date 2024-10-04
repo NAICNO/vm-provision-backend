@@ -7,9 +7,6 @@ import { VmPublicKey } from '@prisma/client'
 import * as Sentry from '@sentry/node'
 
 export const getAllUserSshKeys = async (userId: string | undefined) => {
-  if (!userId) {
-    throw new Error(ErrorMessages.UserNotAuthorized)
-  }
   return prisma.vmPublicKey.findMany({
     where: {
       userId: userId,
@@ -17,10 +14,7 @@ export const getAllUserSshKeys = async (userId: string | undefined) => {
   })
 }
 
-export const createSSHKeyPair = async (userId: string | undefined, name: string) => {
-  if (!userId) {
-    throw new Error(ErrorMessages.UserNotAuthorized)
-  }
+export const createSSHKeyPair = async (userId: string, name: string) => {
 
   const {publicKey, privateKey} = generateKeyPair()
 

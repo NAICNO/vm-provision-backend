@@ -15,24 +15,25 @@ generator dbml {
 model UserActivity {
   activityId   String           @id @default(dbgenerated("gen_random_uuid()")) @map("activity_id") @db.Uuid
   userId       String?          @map("user_id") @db.Uuid
-  vmId         String?          @map("vm_id") @db.Uuid
   activityType UserActivityType @map("activity_type")
   description  String?
   timestamp    DateTime?        @default(now()) @db.Timestamp(6)
+  metadata     Json?            @default("{}")
 
   @@map("user_activity")
 }
 
 model UserProfile {
-  userId          String           @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
-  email           String           @unique
-  username        String           @unique
+  userId          String            @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  email           String            @unique
+  username        String            @unique
   password        String
-  firstName       String           @map("first_name")
-  lastName        String           @map("last_name")
-  userType        String           @default("User") @map("user_type")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt       DateTime?        @default(now()) @map("updated_at") @db.Timestamp(6)
+  firstName       String            @map("first_name")
+  lastName        String            @map("last_name")
+  userType        String            @default("User") @map("user_type")
+  status          UserProfileStatus
+  createdAt       DateTime?         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?         @default(now()) @map("updated_at") @db.Timestamp(6)
   virtualMachines VirtualMachine[]
   publicKeys      VmPublicKey[]
   messages        Message[]
@@ -57,7 +58,7 @@ model VirtualMachine {
   updatedAt    DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
   publicKey    VmPublicKey    @relation(fields: [publicKeyId], references: [keyId])
   vmTemplate   VmTemplate     @relation(fields: [templateId], references: [templateId], onUpdate: NoAction)
-  userProfile  UserProfile    @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  userProfile  UserProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
   vmEvents     VmEvent[]
   messages     Message[]
   ProvisionLog ProvisionLog[]
@@ -130,8 +131,8 @@ model Message {
   status         MessagePublishStatus @map("status")
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt      DateTime?            @default(now()) @map("updated_at") @db.Timestamp(6)
-  virtualMachine VirtualMachine?      @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
-  userProfile    UserProfile?         @relation(fields: [userId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  virtualMachine VirtualMachine?      @relation(fields: [vmId], references: [vmId], onDelete: Cascade, onUpdate: NoAction)
+  userProfile    UserProfile?         @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("message")
 }
@@ -143,7 +144,7 @@ model ProvisionLog {
   action         String          @map("action")
   logMessage     Json            @map("log_message")
   timestamp      DateTime        @default(now()) @db.Timestamp(6)
-  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: NoAction, onUpdate: NoAction)
+  virtualMachine VirtualMachine? @relation(fields: [vmId], references: [vmId], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("provision_log")
 }
@@ -161,11 +162,19 @@ model AppUrl {
   @@map("app_url")
 }
 
+enum UserProfileStatus {
+  ACTIVE
+  DISABLED
+  PENDING_DELETION
+  DELETED
+}
+
 enum UserActivityType {
   USER_CREATED
   USER_LOGIN_SUCCESS
   USER_LOGIN_FAILED
   USER_LOGGED_OUT
+  USER_DELETION_REQUESTED
   USER_DELETED
   USER_UPDATED
   USER_TOKEN_REFRESHED

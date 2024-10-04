@@ -5,10 +5,10 @@
 Table user_activity {
   activityId String [pk]
   userId String
-  vmId String
   activityType UserActivityType [not null]
   description String
   timestamp DateTime [default: `now()`]
+  metadata Json [default: '{}']
 }
 
 Table user_profile {
@@ -19,6 +19,7 @@ Table user_profile {
   firstName String [not null]
   lastName String [not null]
   userType String [not null, default: 'User']
+  status UserProfileStatus [not null]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
   virtualMachines virtual_machine [not null]
@@ -131,11 +132,19 @@ Table app_url {
   metadata Json [default: '{}']
 }
 
+Enum UserProfileStatus {
+  ACTIVE
+  DISABLED
+  PENDING_DELETION
+  DELETED
+}
+
 Enum UserActivityType {
   USER_CREATED
   USER_LOGIN_SUCCESS
   USER_LOGIN_FAILED
   USER_LOGGED_OUT
+  USER_DELETION_REQUESTED
   USER_DELETED
   USER_UPDATED
   USER_TOKEN_REFRESHED
@@ -190,7 +199,7 @@ Ref: virtual_machine.publicKeyId > vm_public_key.keyId
 
 Ref: virtual_machine.templateId > vm_template.templateId
 
-Ref: virtual_machine.userId > user_profile.userId [delete: No Action]
+Ref: virtual_machine.userId > user_profile.userId [delete: Cascade]
 
 Ref: vm_event.vmId > virtual_machine.vmId [delete: Cascade]
 
@@ -198,8 +207,8 @@ Ref: vm_template.providerId > provider.providerId [delete: No Action]
 
 Ref: vm_public_key.userId > user_profile.userId [delete: Cascade]
 
-Ref: message.vmId > virtual_machine.vmId [delete: No Action]
+Ref: message.vmId > virtual_machine.vmId [delete: Cascade]
 
-Ref: message.userId > user_profile.userId [delete: No Action]
+Ref: message.userId > user_profile.userId [delete: Cascade]
 
-Ref: provision_log.vmId > virtual_machine.vmId [delete: No Action]
+Ref: provision_log.vmId > virtual_machine.vmId [delete: Cascade]

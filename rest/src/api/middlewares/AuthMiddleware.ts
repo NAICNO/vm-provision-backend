@@ -1,14 +1,15 @@
 import { NextFunction, Request, Response } from 'express'
 import * as AuthService from '../../services/AuthService'
+import { REAUTH_TIME_LIMIT_MINUTES } from '../../utils/Constants'
 
 export async function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
   try {
     // Check if user is authenticated
-    if (!req.session || !req.session.idToken) {
+    if (!req.session || !req.session.idToken || !req.session.user) {
       return res.status(401).json({error: 'Unauthorized'})
     }
 
-    const now = new Date()
+    const now = Date.now()
 
     // Check if access token exists and is expired
     if (!req.session.accessToken || !req.session.accessTokenExpiresAt) {
@@ -31,11 +32,11 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
 
 
       // Decode new tokens to get expiration times
-      const accessTokenExpiresAt = new Date(AuthService.getExpirationOfToken(accessToken) * 1000)
+      const accessTokenExpiresAt = AuthService.getExpirationOfToken(accessToken) * 1000
 
       let refreshTokenExpiresAt = req.session.refreshTokenExpiresAt
       if (refreshToken) {
-        refreshTokenExpiresAt = new Date(AuthService.getExpirationOfToken(refreshToken) * 1000)
+        refreshTokenExpiresAt = AuthService.getExpirationOfToken(refreshToken) * 1000
       }
 
       // Update session with new tokens and expiration times
@@ -58,6 +59,26 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
       return res.status(401).json({error: 'Authentication error'})
     })
   }
+}
+
+export function requireReauthentication(req: Request, res: Response, next: NextFunction) {
+  const reauthTimeLimit = REAUTH_TIME_LIMIT_MINUTES * 60 * 1000
+
+  if (!req.session.reauthenticatedAt) {
+    return res.status(403).json({error: 'Re-authentication required'})
+  }
+
+  if (typeof req.session.reauthenticatedAt !== 'number') {
+    return res.status(403).json({ error: 'Re-authentication timestamp invalid' })
+  }
+
+  const timeSinceReauth = Date.now() - req.session.reauthenticatedAt
+
+  if (timeSinceReauth > reauthTimeLimit) {
+    return res.status(403).json({error: 'Re-authentication expired'})
+  }
+
+  next()
 }
 
 export const authenticateApiKey = async (req: Request, res: Response, next: NextFunction) => {
