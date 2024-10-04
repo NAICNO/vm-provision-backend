@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { ErrorMessages } from '../../utils/ErrorMessages'
+import { ErrorMessages } from '../../utils/errorMessages'
 
 export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
   console.log('Error - Middleware', err)

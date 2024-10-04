@@ -2,9 +2,9 @@ import * as Sentry from '@sentry/node'
 import { Message, MessagePublishStatus, PrismaClient } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
-import { channel, connectToRabbitMQ, isChannelOpen } from '../utils/QueueUtils'
-import { sleep } from '../utils/Utils'
-import { prisma } from '../models/PrismaClient'
+import { channel, connectToRabbitMQ, isChannelOpen } from '../utils/queueUtils'
+import { sleep } from '../utils/utils'
+import { prisma } from '../models/prismaClient'
 
 export const publishMessage = async (queueName: string, message: Message) => {
   if (isChannelOpen && channel) {

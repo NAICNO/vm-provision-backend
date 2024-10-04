@@ -1,6 +1,6 @@
-import { prisma } from '../models/PrismaClient'
+import { prisma } from '../models/prismaClient'
 import { UserProfile, UserActivityType, UserProfileStatus } from '@prisma/client'
-import { getFirstName, getLastName } from '../utils/Utils'
+import { getFirstName, getLastName } from '../utils/utils'
 
 export const createUserProfileWithOidcUser = async (oidcUser: any) => {
   const {email, user, name} = oidcUser

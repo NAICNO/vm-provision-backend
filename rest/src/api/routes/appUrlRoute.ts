@@ -1,7 +1,7 @@
 import express from 'express'
 
-import { handleAppUrl } from '../controllers/AppUrlController'
-import { validateAppUrl } from '../middlewares/AppUrlValidator'
+import { handleAppUrl } from '../controllers/appUrlController'
+import { validateAppUrl } from '../middlewares/appUrlValidator'
 
 const router = express.Router()
 

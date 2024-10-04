@@ -2,9 +2,9 @@ import * as crypto from 'crypto'
 import { AppUrl, PrismaClient, UrlAction } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
-import { prisma } from '../models/PrismaClient'
-import * as VmService from './VmService'
-import { ErrorMessages } from '../utils/ErrorMessages'
+import { prisma } from '../models/prismaClient'
+import * as VmService from './vmService'
+import { ErrorMessages } from '../utils/errorMessages'
 
 export const createAppUrl = async (tx: Omit<PrismaClient, ITXClientDenyList>, action: UrlAction, metadata: any): Promise<AppUrl> => {
   return tx.appUrl.create({

@@ -1,6 +1,6 @@
-import * as UserService from './UserService'
+import * as UserService from './userService'
 import { getIoInstance, getSocketIdByUsername } from '../sockets'
-import { WebSocketEventType } from '../utils/WebSocketEventType'
+import { WebSocketEventType } from '../utils/webSocketEventType'
 
 export const sendMessageToSpecificUser = async (userId: string, message: any) => {
   const user = await UserService.findUserProfileById(userId)

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 
-import * as AppUrlService from '../../services/AppUrlService'
-import { ErrorMessages } from '../../utils/ErrorMessages'
+import * as AppUrlService from '../../services/appUrlService'
+import { ErrorMessages } from '../../utils/errorMessages'
 
 export const validateAppUrl = async (req: Request, res: Response, next: NextFunction) => {
   try {

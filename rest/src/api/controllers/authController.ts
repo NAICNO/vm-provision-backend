@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express'
-import * as AuthService from '../../services/AuthService'
-import * as UserService from '../../services/UserService'
+import * as AuthService from '../../services/authService'
+import * as UserService from '../../services/userService'
 import { UserActivityType, UserProfileStatus } from '@prisma/client'
-import { ErrorMessages } from '../../utils/ErrorMessages'
+import { ErrorMessages } from '../../utils/errorMessages'
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {

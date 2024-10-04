@@ -8,8 +8,8 @@ import {
   getVmTemplates,
   requestVmDestroy,
   startVmProvisioning,
-} from '../controllers/VmController'
-import { ensureAuthenticated } from '../middlewares/AuthMiddleware'
+} from '../controllers/vmController'
+import { ensureAuthenticated } from '../middlewares/authMiddleware'
 
 const router = express.Router()
 

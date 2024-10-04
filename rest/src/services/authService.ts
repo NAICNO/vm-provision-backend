@@ -1,7 +1,7 @@
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import axios from 'axios'
 
-import { ErrorMessages } from '../utils/ErrorMessages'
+import { ErrorMessages } from '../utils/errorMessages'
 import * as queryString from 'node:querystring'
 import jwksClient from 'jwks-rsa'
 

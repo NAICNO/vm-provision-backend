@@ -12,13 +12,13 @@ const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.en
 dotenv.config({path: envFile})
 
 import { initializeSocketIO } from './src/sockets'
-import authRoutes from './src/api/routes/AuthRoutes'
-import vmRoutes from './src/api/routes/VmRoutes'
-import messageRoutes from './src/api/routes/MessageRoute'
-import appUrlRoute from './src/api/routes/AppUrlRoute'
+import authRoutes from './src/api/routes/authRoutes'
+import vmRoutes from './src/api/routes/vmRoutes'
+import messageRoutes from './src/api/routes/messageRoute'
+import appUrlRoute from './src/api/routes/appUrlRoute'
 
-import { handleError } from './src/api/middlewares/ErrorHandler'
-import { connectToRabbitMQ } from './src/utils/QueueUtils'
+import { handleError } from './src/api/middlewares/errorHandler'
+import { connectToRabbitMQ } from './src/utils/queueUtils'
 
 import  './src/cronJobs'
 

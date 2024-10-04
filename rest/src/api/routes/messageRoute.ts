@@ -1,6 +1,6 @@
 import express from 'express'
-import { processMessage } from '../controllers/MessageController'
-import { authenticateApiKey } from '../middlewares/AuthMiddleware'
+import { processMessage } from '../controllers/messageController'
+import { authenticateApiKey } from '../middlewares/authMiddleware'
 
 const router = express.Router()
 

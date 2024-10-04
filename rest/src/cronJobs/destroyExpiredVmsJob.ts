@@ -1,5 +1,5 @@
 import { Cron } from 'croner'
-import * as VmService from '../services/VmService'
+import * as VmService from '../services/vmService'
 
 const destroyExpiredVmsJob = new Cron('*/10 * * * * *', async () => {
   const expiredVms = await VmService.getExpiredVms()

@@ -1,4 +1,4 @@
-import { prisma } from '../models/PrismaClient'
+import { prisma } from '../models/prismaClient'
 import { TFProgressLog } from '../types/TFProgressLog'
 import { VmStatus } from '@prisma/client'
 

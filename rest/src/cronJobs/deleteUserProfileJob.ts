@@ -1,6 +1,6 @@
 import { Cron } from 'croner'
-import * as VmService from '../services/VmService'
-import * as UserService from '../services/UserService'
+import * as VmService from '../services/vmService'
+import * as UserService from '../services/userService'
 import { UserProfileStatus, VmStatus } from '@prisma/client'
 
 //* */5 * * * * // every 5 minutes

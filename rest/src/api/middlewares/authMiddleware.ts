@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
-import * as AuthService from '../../services/AuthService'
-import { REAUTH_TIME_LIMIT_MINUTES } from '../../utils/Constants'
+import * as AuthService from '../../services/authService'
+import { REAUTH_TIME_LIMIT_MINUTES } from '../../utils/constants'
 
 export async function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
   try {

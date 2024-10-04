@@ -1,8 +1,8 @@
 import { generateKeyPairSync, KeyPairSyncResult } from 'crypto'
 import sshpk from 'sshpk'
 
-import { prisma } from '../models/PrismaClient'
-import { ErrorMessages } from '../utils/ErrorMessages'
+import { prisma } from '../models/prismaClient'
+import { ErrorMessages } from '../utils/errorMessages'
 import { VmPublicKey } from '@prisma/client'
 import * as Sentry from '@sentry/node'
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import * as AppUrlService from '../../services/AppUrlService'
+import * as AppUrlService from '../../services/appUrlService'
 
 export const handleAppUrl = async (req: Request, res: Response) => {
   const appUrl = req.appUrl

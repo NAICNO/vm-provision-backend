@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import * as VmService from '../../services/VmService'
+import * as VmService from '../../services/vmService'
 
 export const processMessage = async (req: Request, res: Response) => {
   const vmId = req.body.vmId

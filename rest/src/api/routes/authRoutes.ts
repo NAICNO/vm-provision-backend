@@ -1,6 +1,6 @@
 import express from 'express'
-import { logout, authenticate, getAuthStatus, deleteUserProfile } from '../controllers/AuthController'
-import { requireReauthentication } from '../middlewares/AuthMiddleware'
+import { logout, authenticate, getAuthStatus, deleteUserProfile } from '../controllers/authController'
+import { requireReauthentication } from '../middlewares/authMiddleware'
 
 const router = express.Router()
 

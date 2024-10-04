@@ -14,22 +14,22 @@ import {
 } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
-import { prisma } from '../models/PrismaClient'
-import { ErrorMessages } from '../utils/ErrorMessages'
-import * as UserService from './UserService'
+import { prisma } from '../models/prismaClient'
+import { ErrorMessages } from '../utils/errorMessages'
+import * as UserService from './userService'
 import * as MessageQueueService from './MessageQueueService'
 import * as SshKeyService from './SshKeyService'
-import * as AppUrlService from './AppUrlService'
+import * as AppUrlService from './appUrlService'
 import * as SocketService from './SocketService'
-import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates } from '../utils/VmStatusUtils'
-import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/Constants'
+import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates } from '../utils/vmStatusUtils'
+import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { GenericResponse } from '../types/GenericResponse'
 
-import { getFolderNameForProvider } from '../utils/Utils'
-import * as LogService from './LogService'
-import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/UrlActionUtils'
-import { getFullAppUrl } from './AppUrlService'
+import { getFolderNameForProvider } from '../utils/utils'
+import * as LogService from './tfLogService'
+import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/urlActionUtils'
+import { getFullAppUrl } from './appUrlService'
 
 export const getAllVmsOfUserWithTemplates = async (userId: string) => {
   if (!userId) {

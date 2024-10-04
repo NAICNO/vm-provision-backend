@@ -1,6 +1,6 @@
 import { UrlAction, VmStatus } from '@prisma/client'
 
-import { getActionByUrlAction, findNextVmState } from '../../src/services/VmService'
+import { getActionByUrlAction, findNextVmState } from '../../src/services/vmService'
 
 
 describe('findVmActionForUrlActionType', () => {
