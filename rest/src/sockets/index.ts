@@ -1,5 +1,6 @@
 import socketio, { Server as SocketIoServer } from 'socket.io'
 import http from 'http'
+import logger from '../utils/logger'
 // import socketAuthMiddleware from './middleware'
 
 let io: SocketIoServer
@@ -23,22 +24,22 @@ export const initializeSocketIO = (server: http.Server) => {
     const userId = socket.handshake.auth.userId as string
     if (userId) {
       userSocketMap.set(userId, socket.id)
-      console.log(`User ${userId} registered connected with socket ${socket.id}`)
+      logger.debug(`User ${userId} registered CONNECTED with socket ${socket.id}`)
     } else {
-      console.log('userId not provided for socket id', socket.id)
+      logger.error('userId not provided for socket id', socket.id)
     }
 
     socket.on('disconnect', () => {
       userSocketMap.forEach((socketId, userId) => {
         if (socketId === socket.id) {
           userSocketMap.delete(userId)
-          console.log(`User ${userId} disconnected`)
+          logger.debug(`User ${userId} DISCONNECTED from socket ${socket.id}`)
         }
       })
     })
 
     socket.on('message', (message) => {
-      console.log('message', message, socket.id)
+      logger.debug('WS Emitting message', message)
       vmNamespace.emit('message', socket.id)
     })
   })
@@ -48,7 +49,7 @@ export const initializeSocketIO = (server: http.Server) => {
 
 export const getIoInstance = (): SocketIoServer => {
   if (!io) {
-    console.log('Socket.IO instance not initialized')
+    logger.error('Socket.IO instance not initialized')
     throw new Error('Socket.IO instance not initialized')
   }
   return io

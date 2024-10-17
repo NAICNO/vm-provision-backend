@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express'
 import { ErrorMessages } from '../../utils/errorMessages'
+import logger from '../../utils/logger'
 
 export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.log('Error - Middleware', err)
+  logger.error('Error - Middleware', err)
   switch (err.message) {
   case ErrorMessages.TokenNotProvided:
     res.status(401).json({message: err.message})

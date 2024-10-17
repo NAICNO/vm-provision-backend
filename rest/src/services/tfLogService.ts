@@ -1,6 +1,7 @@
 import { prisma } from '../models/prismaClient'
 import { TFProgressLog } from '../types/TFProgressLog'
 import { VmStatus } from '@prisma/client'
+import logger from '../utils/logger'
 
 export const createProvisionLog = async (vmId: string, action: string, queueName: string, logMessage: any) => {
   return prisma.provisionLog.create({
@@ -27,7 +28,7 @@ export const convertToTFProgressLog = (obj: any): TFProgressLog | null => {
     // If all checks pass, cast the object and return
     return obj as TFProgressLog
   } catch (error) {
-    console.error('Error converting object to TerraformLog:', error)
+    logger.error('Error converting object to TerraformLog:', error)
     return null // or handle the error as appropriate
   }
 }

@@ -1,12 +1,14 @@
 import { Cron } from 'croner'
+
 import * as VmService from '../services/vmService'
 import * as UserService from '../services/userService'
 import { UserProfileStatus, VmStatus } from '@prisma/client'
+import logger from '../utils/logger'
 
 //* */5 * * * * // every 5 minutes
-const deleteUserProfileJob = new Cron('*/10 * * * * *', async () => {
+const deleteUserProfileJob = new Cron('*/30 * * * * *', async () => {
 
-  console.log('running deleteUserProfileJob every 10 seconds')
+  logger.debug('[Cron] Running deleteUserProfileJob every 30 seconds')
   // Find all the users who have PENDING_DELETION status
   const users = await UserService.findUsersByStatus(UserProfileStatus.PENDING_DELETION)
 

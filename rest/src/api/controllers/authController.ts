@@ -3,6 +3,7 @@ import * as AuthService from '../../services/authService'
 import * as UserService from '../../services/userService'
 import { UserActivityType, UserProfileStatus } from '@prisma/client'
 import { ErrorMessages } from '../../utils/errorMessages'
+import logger from '../../utils/logger'
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -13,7 +14,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const accessTokenExpiresAt = AuthService.getExpirationOfToken(accessToken)
     const refreshTokenExpiresAt = AuthService.getExpirationOfToken(refreshToken)
 
-    console.log('User authenticated')
+    logger.debug('User authenticated')
 
     let userProfile = await UserService.findUserProfileByEmail(oidcUser.email)
 

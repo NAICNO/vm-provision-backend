@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 
 import * as VmService from '../../services/vmService'
-import * as SshKeyService from '../../services/SshKeyService'
+import * as SshKeyService from '../../services/sshKeyService'
 
 export const getAllVmsOfUser = async (req: Request, res: Response) => {
   const userProfile = req.session.user!

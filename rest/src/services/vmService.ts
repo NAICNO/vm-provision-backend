@@ -17,19 +17,20 @@ import { ITXClientDenyList } from '@prisma/client/runtime/library'
 import { prisma } from '../models/prismaClient'
 import { ErrorMessages } from '../utils/errorMessages'
 import * as UserService from './userService'
-import * as MessageQueueService from './MessageQueueService'
-import * as SshKeyService from './SshKeyService'
+import * as MessageQueueService from './messageQueueService'
+import * as SshKeyService from './sshKeyService'
 import * as AppUrlService from './appUrlService'
-import * as SocketService from './SocketService'
+import * as SocketService from './socketService'
 import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates } from '../utils/vmStatusUtils'
 import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { GenericResponse } from '../types/GenericResponse'
 
 import { getFolderNameForProvider } from '../utils/utils'
-import * as LogService from './tfLogService'
+import * as TfLogService from './tfLogService'
 import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/urlActionUtils'
 import { getFullAppUrl } from './appUrlService'
+import logger from '../utils/logger'
 
 export const getAllVmsOfUserWithTemplates = async (userId: string) => {
   if (!userId) {
@@ -310,7 +311,7 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
   try {
     await logProvisioningStatus(vmId, action, queueName, message)
 
-    const log = LogService.convertToTFProgressLog(message)
+    const log = TfLogService.convertToTFProgressLog(message)
     if (!log) {
       return GenericResponse.error
     }
@@ -324,7 +325,7 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
     const {
       status: statusFromLog,
       ip: ipFromLog
-    } = LogService.findStatusFromProvisionLog(log, action)
+    } = TfLogService.findStatusFromProvisionLog(log, action)
 
     const updatedVm = await updateVmStatus(vmId, statusFromLog, currentStatus, ipFromLog)
 
@@ -332,7 +333,7 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
 
     return GenericResponse.success
   } catch (error) {
-    console.error('Error updating VM status via TF log', error)
+    logger.error('Error updating VM status via TF log', {vmId, error})
     return GenericResponse.error
   }
 }
@@ -361,7 +362,7 @@ export const updateVmProvisioningStatusByRestCallback = async (vmId: string, url
 
     return GenericResponse.success
   } catch (error) {
-    console.error('Error updating VM status via REST callback', error)
+    logger.error('Error updating VM status via REST callback', {vmId, error})
     return GenericResponse.error
   }
 
@@ -378,17 +379,17 @@ export const getActionByUrlAction = (action: UrlAction): string => {
 }
 
 export const logProvisioningStatus = async (vmId: string, action: string, queueName: string, message: any) => {
-  await LogService.createProvisionLog(vmId, action, queueName, message)
+  await TfLogService.createProvisionLog(vmId, action, queueName, message)
 }
 
 export const updateVmStatus = async (vmId: string, statusFromLog: VmStatus, currentStatus: VmStatus, ipFromLog?: string): Promise<VirtualMachine> => {
   const nextStatus = findNextVmState(currentStatus, statusFromLog)
 
   if (nextStatus === currentStatus) {
-    console.log('No status change', currentStatus, nextStatus)
+    logger.debug('No status change', {vmId, currentStatus, nextStatus})
     throw new Error('No status change')
   } else {
-    console.log('Status change', currentStatus, nextStatus)
+    logger.debug('Status change', {vmId, currentStatus, nextStatus})
 
     const update = {
       status: nextStatus,
@@ -404,7 +405,7 @@ export const updateVmStatus = async (vmId: string, statusFromLog: VmStatus, curr
       data: {...update},
     })
 
-    console.log('Vm status updated', vmId, nextStatus)
+    logger.debug('Vm status updated', {vmId, nextStatus})
     return updatedVm
   }
 }

@@ -5,6 +5,7 @@ import { ITXClientDenyList } from '@prisma/client/runtime/library'
 import { prisma } from '../models/prismaClient'
 import * as VmService from './vmService'
 import { ErrorMessages } from '../utils/errorMessages'
+import logger from '../utils/logger'
 
 export const createAppUrl = async (tx: Omit<PrismaClient, ITXClientDenyList>, action: UrlAction, metadata: any): Promise<AppUrl> => {
   return tx.appUrl.create({
@@ -43,7 +44,7 @@ export const handleAppUrl = async (appUrl: AppUrl) => {
   }
 
   default:
-    console.log('Unknown action type', actionType)
+    logger.info(`Unknown action type for action type: ${actionType}`, appUrl)
   }
 }
 
