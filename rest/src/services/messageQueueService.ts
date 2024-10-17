@@ -5,6 +5,7 @@ import { ITXClientDenyList } from '@prisma/client/runtime/library'
 import { channel, connectToRabbitMQ, isChannelOpen } from '../utils/queueUtils'
 import { sleep } from '../utils/utils'
 import { prisma } from '../models/prismaClient'
+import logger from '../utils/logger'
 
 export const publishMessage = async (queueName: string, message: Message) => {
   if (isChannelOpen && channel) {
@@ -24,7 +25,7 @@ export const publishMessage = async (queueName: string, message: Message) => {
           })
       }
     } catch (error) {
-      console.error('Failed to send message:', error)
+      logger.error('Failed to send message:', error)
       Sentry.captureException(error, {contexts: {rabbitmq: {message: 'Error in publishing message'}}})
       await markMessageAsFailed(message.messageId)
     }

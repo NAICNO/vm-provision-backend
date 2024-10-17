@@ -7,6 +7,9 @@ import * as Sentry from '@sentry/node'
 import session from 'express-session'
 import RedisStore from 'connect-redis'
 import { createClient } from 'redis'
+import expressWinston from 'express-winston'
+
+import logger from './src/utils/logger'
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
 dotenv.config({path: envFile})
@@ -19,8 +22,8 @@ import appUrlRoute from './src/api/routes/appUrlRoute'
 
 import { handleError } from './src/api/middlewares/errorHandler'
 import { connectToRabbitMQ } from './src/utils/queueUtils'
+import './src/cronJobs'
 
-import  './src/cronJobs'
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
@@ -30,10 +33,10 @@ const redisClient = createClient({
 redisClient
   .connect()
   .then(() => {
-    console.log('Redis connection established')
+    logger.info('Redis connection established')
   })
   .catch(error => {
-    console.error('Redis connection error:', error)
+    logger.error('Redis connection error:', error)
   })
 
 const redisStore = new RedisStore({
@@ -68,6 +71,20 @@ app.use(
 
 const port = process.env.PORT || 3000
 
+// Request logging
+app.use(expressWinston.logger({
+  winstonInstance: logger,
+  meta: true,
+  msg: 'HTTP {{res.statusCode}} {{req.method}} {{res.responseTime}}ms {{req.url}}',
+  expressFormat: true,
+  colorize: false,
+}))
+
+// Error logging
+app.use(expressWinston.errorLogger({
+  winstonInstance: logger,
+}))
+
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/vm', vmRoutes)
@@ -75,13 +92,13 @@ app.use('/api/message', messageRoutes)
 app.use('/go', appUrlRoute)
 
 // Error handlers
- Sentry.setupExpressErrorHandler(app)
+Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
 
 connectToRabbitMQ()
 
 server.listen(port, () => {
-  console.log(`⚡️[server]: Server is running at http://localhost:${port}`)
+  logger.info(`⚡️[server]: Server is running at http://localhost:${port}`)
 })
 
 

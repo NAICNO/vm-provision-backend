@@ -4,6 +4,7 @@ import axios from 'axios'
 import { ErrorMessages } from '../utils/errorMessages'
 import * as queryString from 'node:querystring'
 import jwksClient from 'jwks-rsa'
+import logger from '../utils/logger'
 
 export const fetchTokens = async (code: string, nonce: string) => {
 
@@ -35,7 +36,7 @@ export const fetchTokens = async (code: string, nonce: string) => {
       oidcUser: user
     }
   } catch (error) {
-    console.log('Error fetching external tokens')
+    logger.error('Error fetching external tokens', error)
     throw new Error(ErrorMessages.TokenCannotBeObtained)
   }
 }
@@ -76,6 +77,7 @@ export const refreshTokens = async (refreshToken: string) => {
       oidcUser: user
     }
   } catch (error) {
+    logger.error('Error refreshing tokens', error)
     throw new Error(ErrorMessages.TokenRefreshFailed)
   }
 }

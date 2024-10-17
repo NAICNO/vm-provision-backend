@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express'
 import * as AuthService from '../../services/authService'
 import { REAUTH_TIME_LIMIT_MINUTES } from '../../utils/constants'
+import logger from '../../utils/logger'
+import { promisify } from 'node:util'
 
 export async function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
   try {
@@ -17,14 +19,18 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
     }
 
     if (now >= req.session.accessTokenExpiresAt) {
-      console.log('Access token expired, refreshing...')
+      logger.debug('Access token expired, refreshing...', {userId: req.session.user.userId})
+
+      const destroySession = promisify(req.session.destroy).bind(req.session)
 
       // Check if refresh token is available and not expired
       if (!req.session.refreshToken || !req.session.refreshTokenExpiresAt) {
+        await destroySession()
         return res.status(401).json({error: 'Refresh token not available or expired'})
       }
 
       if (now >= req.session.refreshTokenExpiresAt) {
+        await destroySession()
         return res.status(401).json({error: 'Refresh token expired'})
       }
 
@@ -49,12 +55,12 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
         req.session.refreshTokenExpiresAt = refreshTokenExpiresAt
       }
 
-      console.log('Tokens refreshed successfully')
+      logger.debug('Tokens refreshed successfully', {userId: req.session.user.userId})
     }
 
     next()
   } catch (error) {
-    console.error('Authentication error:', error)
+    logger.error('Error ensuring authentication', error)
     req.session.destroy(() => {
       return res.status(401).json({error: 'Authentication error'})
     })
@@ -69,7 +75,7 @@ export function requireReauthentication(req: Request, res: Response, next: NextF
   }
 
   if (typeof req.session.reauthenticatedAt !== 'number') {
-    return res.status(403).json({ error: 'Re-authentication timestamp invalid' })
+    return res.status(403).json({error: 'Re-authentication timestamp invalid'})
   }
 
   const timeSinceReauth = Date.now() - req.session.reauthenticatedAt
