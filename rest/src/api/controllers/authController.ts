@@ -56,10 +56,19 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
 export const getAuthStatus = async (req: Request, res: Response) => {
   if (req.session && req.session.idToken && req.session.user) {
-    res.json({
-      isAuthenticated: true,
-      user: req.session.user,
-    })
+    try {
+      await AuthService.validateIdToken(req.session.idToken)
+      res.json({
+        isAuthenticated: true,
+        user: req.session.user,
+      })
+    } catch (error) {
+      logger.error('Error validating id token', error)
+      res.json({
+        isAuthenticated: false,
+        user: null,
+      })
+    }
   } else {
     res.json({
       authenticated: false,

@@ -18,7 +18,7 @@ write_files:
       # Restore the original PS1 value
       export PS1=$ORIGINAL_PS1
       
-      echo "Thank you for using NAIC Orchestrator- Self Service VM Portal!"
+      echo "Thank you for using NAIC Orchestrator - Self Service VM Portal!"
 
 permissions: '0755'
 
@@ -27,7 +27,7 @@ permissions: '0755'
 runcmd:
   - |
     if [ -f /etc/redhat-release ]; then
-      curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/rhel.sh| bash
+      curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/rhel.sh | bash
     fi
   - |
     if [ -f /etc/debian_version ]; then
