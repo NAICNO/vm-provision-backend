@@ -19,7 +19,7 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
     }
 
     if (now >= req.session.accessTokenExpiresAt) {
-      logger.debug('Access token expired, refreshing...', {userId: req.session.user.userId})
+      logger.debug({message:'Access token expired, refreshing...', userId: req.session?.user?.userId})
 
       const destroySession = promisify(req.session.destroy).bind(req.session)
 
@@ -55,12 +55,12 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
         req.session.refreshTokenExpiresAt = refreshTokenExpiresAt
       }
 
-      logger.debug('Tokens refreshed successfully', {userId: req.session.user.userId})
+      logger.debug({message: 'Tokens refreshed successfully', userId: req.session?.user?.userId})
     }
 
     next()
   } catch (error) {
-    logger.error('Error ensuring authentication', error)
+    logger.error({message: 'Error ensuring authentication', error})
     req.session.destroy(() => {
       return res.status(401).json({error: 'Authentication error'})
     })
@@ -84,6 +84,20 @@ export function requireReauthentication(req: Request, res: Response, next: NextF
     return res.status(403).json({error: 'Re-authentication expired'})
   }
 
+  next()
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.user?.userType.includes('ADMIN')) {
+    return res.status(403).json({error: 'Unauthorized'})
+  }
+  next()
+}
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.user?.userType.includes('SUPER_ADMIN')) {
+    return res.status(403).json({error: 'Unauthorized'})
+  }
   next()
 }
 

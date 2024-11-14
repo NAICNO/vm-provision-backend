@@ -65,3 +65,26 @@ export const archiveVm = async (req: Request, res: Response) => {
   await VmService.archiveVm(vmId, userProfile?.userId)
   res.json({status: 'success'})
 }
+
+export const getAllProviders = async (req: Request, res: Response) => {
+  const providers = await VmService.getAllProviders()
+  res.json(providers)
+}
+
+export const getProviderById = async (req: Request, res: Response) => {
+  const providerId = req.params.providerId
+  const provider = await VmService.getProviderById(providerId)
+  res.json(provider)
+}
+
+export const getAllVmTemplatesByProvider = async (req: Request, res: Response) => {
+  const providerId = req.params.providerId
+  const vmTemplates = await VmService.getAllVmTemplatesByProvider(providerId)
+  res.json(vmTemplates)
+}
+
+export const getVmTemplateById = async (req: Request, res: Response) => {
+  const templateId = req.params.templateId
+  const template = await VmService.getVmTemplateById(templateId)
+  res.json(template)
+}

@@ -14,29 +14,40 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const accessTokenExpiresAt = AuthService.getExpirationOfToken(accessToken)
     const refreshTokenExpiresAt = AuthService.getExpirationOfToken(refreshToken)
 
-    logger.debug('User authenticated')
+    // Validate user project membership
+    const isMember = UserService.validateUserProjectMembership(oidcUser.projects)
+
+    if (!isMember) {
+      throw new Error(ErrorMessages.UserIsNotMemberOfProject)
+    }
 
     let userProfile = await UserService.findUserProfileByEmail(oidcUser.email)
 
-    if (!userProfile) {
-      userProfile = await UserService.createUserProfileWithOidcUser(oidcUser)
+    if (userProfile?.status === UserProfileStatus.DISABLED) {
+      throw new Error(ErrorMessages.UserDisabled)
+    } else if (userProfile?.status === UserProfileStatus.PENDING_DELETION) {
+      throw new Error(ErrorMessages.UserPendingDeletion)
     }
+
+    // Check if the user is a project admin
+    const isAdmin = UserService.validateUserProjectAdmin(oidcUser.groups)
+
+    // Update local user type with OIDC user data if necessary
+    if (userProfile) {
+      userProfile = await UserService.updateUserProfileWithOidcUser(userProfile, oidcUser, isAdmin)
+    }
+
+    if (!userProfile) {
+      userProfile = await UserService.createUserProfileWithOidcUser(oidcUser, isAdmin)
+    }
+
+    const sanitizedUserProfile = UserService.sanitizeUserProfile(userProfile)
 
     req.session.idToken = idToken
     req.session.accessToken = accessToken
     req.session.refreshToken = refreshToken
     req.session.accessTokenExpiresAt = accessTokenExpiresAt * 1000
     req.session.refreshTokenExpiresAt = refreshTokenExpiresAt * 1000
-
-    if (userProfile.status === UserProfileStatus.DISABLED) {
-      throw new Error(ErrorMessages.UserDisabled)
-
-    } else if (userProfile.status === UserProfileStatus.PENDING_DELETION) {
-      throw new Error(ErrorMessages.UserPendingDeletion)
-    }
-
-    const sanitizedUserProfile = UserService.sanitizeUserProfile(userProfile)
-
     req.session.user = userProfile
 
     if (isReauth) {
@@ -47,6 +58,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     res.json({success: true, user: sanitizedUserProfile})
 
     UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS)
+    logger.info(`User ${userProfile.userId} logged in`)
   } catch (error) {
     UserService.logUserActivity('user-unknown', UserActivityType.USER_LOGIN_FAILED, '', {error: error})
     next(error)

@@ -1,8 +1,9 @@
 import { prisma } from '../models/prismaClient'
-import { UserProfile, UserActivityType, UserProfileStatus } from '@prisma/client'
+import { UserProfile, UserActivityType, UserProfileStatus, UserType } from '@prisma/client'
 import { getFirstName, getLastName } from '../utils/utils'
+import { ErrorMessages } from '../utils/errorMessages'
 
-export const createUserProfileWithOidcUser = async (oidcUser: any) => {
+export const createUserProfileWithOidcUser = async (oidcUser: any, isAdmin: boolean) => {
   const {email, user, name} = oidcUser
 
   const newUserProfile: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'> = {
@@ -11,10 +12,57 @@ export const createUserProfileWithOidcUser = async (oidcUser: any) => {
     password: '',
     firstName: getFirstName(name),
     lastName: getLastName(name),
-    userType: 'user',
+    userType: isAdmin ? UserType.ADMIN : UserType.USER,
     status: UserProfileStatus.ACTIVE,
   }
   return await createUserProfile(newUserProfile)
+}
+
+export const updateUserProfileWithOidcUser = async (userProfile: UserProfile, oidcUser: any, isAdmin: boolean) => {
+
+  const {email, user, name} = oidcUser
+
+  const userType = userProfile.userType === UserType.SUPER_ADMIN
+    ? UserType.SUPER_ADMIN // Preserve SUPER_ADMIN if already set
+    : isAdmin
+      ? UserType.ADMIN
+      : UserType.USER
+
+  const updatedUserProfile: Omit<UserProfile, 'userId' | 'createdAt'> = {
+    email: email,
+    username: user,
+    password: '',
+    firstName: getFirstName(name),
+    lastName: getLastName(name),
+    userType: userType,
+    status: userProfile.status, // keep the status
+    updatedAt: new Date(),
+  }
+
+  /// Check if any fields are different
+  const hasChanges =
+    userProfile.email !== updatedUserProfile.email ||
+    userProfile.username !== updatedUserProfile.username ||
+    userProfile.firstName !== updatedUserProfile.firstName ||
+    userProfile.lastName !== updatedUserProfile.lastName ||
+    userProfile.userType !== updatedUserProfile.userType
+
+  // If no changes are detected, return the existing profile
+  if (!hasChanges) {
+    return userProfile
+  }
+
+  if (!hasChanges) {
+    return userProfile
+  }
+
+  // Update the profile if there are changes
+  return prisma.userProfile.update({
+    where: {
+      userId: userProfile.userId,
+    },
+    data: updatedUserProfile,
+  })
 }
 
 export const sanitizeUserProfile = (userProfile: UserProfile) => {
@@ -27,6 +75,10 @@ export const sanitizeUserProfile = (userProfile: UserProfile) => {
     lastName: userProfile.lastName,
     userType: userProfile.userType,
   }
+}
+
+export const getAllUserProfiles = async () => {
+  return prisma.userProfile.findMany()
 }
 
 export const findUserProfileByUsername = async (username: string) => {
@@ -59,6 +111,22 @@ export const findUsersByStatus = async (status: UserProfileStatus) => {
       status: status,
     },
   })
+}
+
+export const validateUserProjectMembership = (projects: string[]): boolean => {
+  const naicProjectId = process.env.NAIC_EDUCLOUD_PROJECT_ID
+  if (!naicProjectId) {
+    throw new Error(ErrorMessages.InternalServerError)
+  }
+  return projects.includes(naicProjectId)
+}
+
+export const validateUserProjectAdmin = (groups: string[]): boolean => {
+  const naicProjectId = process.env.NAIC_EDUCLOUD_PROJECT_ID
+  if (!naicProjectId) {
+    throw new Error(ErrorMessages.InternalServerError)
+  }
+  return groups.includes(`${naicProjectId}-admin-group`)
 }
 
 const createUserProfile = async (user: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>) => {

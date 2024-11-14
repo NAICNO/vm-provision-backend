@@ -3,7 +3,7 @@ import { ErrorMessages } from '../../utils/errorMessages'
 import logger from '../../utils/logger'
 
 export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error('Error - Middleware', err)
+  logger.error({message: 'Error - Middleware', err})
   switch (err.message) {
   case ErrorMessages.TokenNotProvided:
     res.status(401).json({message: err.message})
@@ -28,6 +28,9 @@ export const handleError = (err: Error, req: Request, res: Response, next: NextF
     break
   case ErrorMessages.UserPendingDeletion:
     res.status(403).json({message: err.message, route: 'profile-status', routeParam: {status: 'pending-deletion'}})
+    break
+  case ErrorMessages.UserIsNotMemberOfProject:
+    res.status(403).json({message: err.message, route: 'profile-status', routeParam: {status: 'not-a-member'}})
     break
   case ErrorMessages.TokenCannotBeObtained:
     res.status(403).json({message: err.message, route: ''})

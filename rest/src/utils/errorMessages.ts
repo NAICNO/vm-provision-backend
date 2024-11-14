@@ -10,6 +10,7 @@ export const ErrorMessages = {
   UserNotAuthorized: 'User unauthorized',
   UserDisabled: 'User disabled',
   UserPendingDeletion: 'User pending deletion',
+  UserIsNotMemberOfProject: 'User is not a member of project',
   CannotCreateVmDueToServerError: 'Cannot create VM due to server error',
   ApiKeyNotProvided: 'API key not provided',
   AppUrlInvalidOrExpired: 'Invalid or expired URL',

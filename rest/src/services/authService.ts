@@ -36,14 +36,14 @@ export const fetchTokens = async (code: string, nonce: string) => {
       oidcUser: user
     }
   } catch (error) {
-    logger.error('Error fetching external tokens', error)
+    logger.error({message: 'Error fetching external tokens', error})
     throw new Error(ErrorMessages.TokenCannotBeObtained)
   }
 }
 
 export const getExpirationOfToken = (token: string): number => {
   const decoded = jwt.decode(token) as JwtPayload
-  if(!decoded.exp) {
+  if (!decoded.exp) {
     throw new Error(ErrorMessages.UserNotAuthorized)
   }
   return decoded.exp
@@ -77,7 +77,7 @@ export const refreshTokens = async (refreshToken: string) => {
       oidcUser: user
     }
   } catch (error) {
-    logger.error('Error refreshing tokens', error)
+    logger.error({message: 'Error refreshing tokens', error})
     throw new Error(ErrorMessages.TokenRefreshFailed)
   }
 }

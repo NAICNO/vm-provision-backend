@@ -25,7 +25,7 @@ export const publishMessage = async (queueName: string, message: Message) => {
           })
       }
     } catch (error) {
-      logger.error('Failed to send message:', error)
+      logger.error({message: 'Failed to send message:', error})
       Sentry.captureException(error, {contexts: {rabbitmq: {message: 'Error in publishing message'}}})
       await markMessageAsFailed(message.messageId)
     }

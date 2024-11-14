@@ -68,6 +68,63 @@ export const getAllVmsOfUser = async (userId: string) => {
   })
 }
 
+export const getAllProviders = async () => {
+  return prisma.provider.findMany()
+}
+
+export const getProviderById = async (providerId: string) => {
+  try {
+    return prisma.provider.findUniqueOrThrow({
+      where: {
+        providerId: providerId,
+      },
+    })
+  } catch (e) {
+    const error = new Error(ErrorMessages.InternalServerError)
+    Sentry.captureException(error, {
+      contexts: {
+        message: {
+          vmTemplateId: providerId,
+          message: 'VM Provider not found'
+        }
+      }
+    })
+    throw error
+  }
+}
+
+export const getAllVmTemplatesByProvider = async (providerId: string) => {
+  return prisma.vmTemplate.findMany({
+    where: {
+      providerId: providerId,
+    },
+    include: {
+      provider: true,
+    }
+  })
+}
+
+export const getVmTemplateById = async (templateId: string) => {
+  try {
+    return await prisma.vmTemplate.findUniqueOrThrow({
+      where: {
+        templateId: templateId,
+      },
+    })
+  } catch (e) {
+    const error = new Error(ErrorMessages.InternalServerError)
+    Sentry.captureException(error, {
+      contexts: {
+        message: {
+          vmTemplateId: templateId,
+          message: 'VM template not found'
+        }
+      }
+    })
+    throw error
+  }
+}
+
 export const getAllVmTemplates = async () => {
   return prisma.vmTemplate
     .findMany(
@@ -333,7 +390,9 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
 
     return GenericResponse.success
   } catch (error) {
-    logger.error('Error updating VM status via TF log', {vmId, error})
+    logger.error({
+      message: 'Error updating VM status via TF log', vmId, error
+    })
     return GenericResponse.error
   }
 }
@@ -362,7 +421,7 @@ export const updateVmProvisioningStatusByRestCallback = async (vmId: string, url
 
     return GenericResponse.success
   } catch (error) {
-    logger.error('Error updating VM status via REST callback', {vmId, error})
+    logger.error({message: 'Error updating VM status via REST callback', vmId, error})
     return GenericResponse.error
   }
 
@@ -472,27 +531,6 @@ export const getVmOfUserById = async (vmId: string, userId: string) => {
   })
 }
 
-const getVmTemplateById = async (templateId: string) => {
-  try {
-    return await prisma.vmTemplate.findUniqueOrThrow({
-      where: {
-        templateId: templateId,
-      },
-    })
-  } catch (e) {
-    const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmTemplateId: templateId,
-          message: 'VM template not found'
-        }
-      }
-    })
-    throw error
-  }
-}
-
 const prepareVmCreationRequestMessage = (
   virtualMachine: VirtualMachine,
   template: VmTemplate,
@@ -527,27 +565,6 @@ const prepareVmCreationRequestMessage = (
     provider: folderName,
     action: 'CREATE',
     tf_vars,
-  }
-}
-
-const getProviderById = async (providerId: string) => {
-  try {
-    return prisma.provider.findUniqueOrThrow({
-      where: {
-        providerId: providerId,
-      },
-    })
-  } catch (e) {
-    const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmTemplateId: providerId,
-          message: 'VM Provider not found'
-        }
-      }
-    })
-    throw error
   }
 }
 

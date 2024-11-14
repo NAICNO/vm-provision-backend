@@ -14,7 +14,7 @@ generator dbml {
 
 model UserActivity {
   activityId   String           @id @default(dbgenerated("gen_random_uuid()")) @map("activity_id") @db.Uuid
-  userId       String?          @map("user_id") @db.Uuid
+  userId       String?          @map("user_id")
   activityType UserActivityType @map("activity_type")
   description  String?
   timestamp    DateTime?        @default(now()) @db.Timestamp(6)
@@ -30,7 +30,7 @@ model UserProfile {
   password        String
   firstName       String            @map("first_name")
   lastName        String            @map("last_name")
-  userType        String            @default("User") @map("user_type")
+  userType        UserType          @default(USER) @map("user_type")
   status          UserProfileStatus
   createdAt       DateTime?         @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt       DateTime?         @default(now()) @map("updated_at") @db.Timestamp(6)
@@ -160,6 +160,12 @@ model AppUrl {
   metadata  Json?     @default("{}") @map("metadata")
 
   @@map("app_url")
+}
+
+enum UserType {
+  SUPER_ADMIN
+  ADMIN
+  USER
 }
 
 enum UserProfileStatus {

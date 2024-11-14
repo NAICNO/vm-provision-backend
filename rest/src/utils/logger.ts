@@ -1,11 +1,20 @@
 import { createLogger, format, transports } from 'winston'
 
-const {colorize, combine, timestamp, printf, errors, json} = format
+const {colorize, combine, timestamp, printf, errors, json, prettyPrint} = format
 
 const env = process.env.NODE_ENV || 'development'
 
-const devFormat = printf(({level, message, timestamp, stack}) => {
-  return `${timestamp} [${level}] ${stack || message}`
+const devFormat = printf(({level, message, timestamp, stack, ...meta}) => {
+
+  let isMetaEmpty = false
+  if(Object.keys(meta).length === 0) {
+    isMetaEmpty = true
+  } else if (Object.keys(meta).includes('meta') && (Object.keys(meta.meta).length === 0)) {
+    isMetaEmpty = true
+  }
+
+  const metaString = isMetaEmpty ? '' : JSON.stringify(meta, null, 2)
+  return `${timestamp} [${level}] ${stack || message}${metaString ? `\n${metaString}` : ''}`
 })
 
 const transportsList = [
@@ -18,9 +27,9 @@ const logger = createLogger({
   format: combine(
     timestamp(),
     errors({stack: true}), // Include stack traces
-    env === 'development' ? combine(colorize(), devFormat) : json() // Use JSON format in production
+    env === 'development' ? combine(prettyPrint(), colorize(), devFormat) : json() // Use JSON format in production
   ),
-  defaultMeta: {service: 'rest'},
+  defaultMeta: env === 'production' ? {service: 'rest'} : undefined,
   transports: transportsList,
 })
 

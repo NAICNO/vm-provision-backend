@@ -44,7 +44,7 @@ export const handleAppUrl = async (appUrl: AppUrl) => {
   }
 
   default:
-    logger.info(`Unknown action type for action type: ${actionType}`, appUrl)
+    logger.info({message: `Unknown action type for action type: ${actionType}`, appUrl})
   }
 }
 

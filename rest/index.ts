@@ -11,12 +11,15 @@ import expressWinston from 'express-winston'
 
 import logger from './src/utils/logger'
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
+const env = process.env.NODE_ENV || 'development'
+
+const envFile = env ? '.env.production' : '.env'
 dotenv.config({path: envFile})
 
 import { initializeSocketIO } from './src/sockets'
 import authRoutes from './src/api/routes/authRoutes'
 import vmRoutes from './src/api/routes/vmRoutes'
+import userRoutes from './src/api/routes/userRoutes'
 import messageRoutes from './src/api/routes/messageRoute'
 import appUrlRoute from './src/api/routes/appUrlRoute'
 
@@ -36,7 +39,7 @@ redisClient
     logger.info('Redis connection established')
   })
   .catch(error => {
-    logger.error('Redis connection error:', error)
+    logger.error({message: 'Redis connection error:', error})
   })
 
 const redisStore = new RedisStore({
@@ -74,7 +77,7 @@ const port = process.env.PORT || 3000
 // Request logging
 app.use(expressWinston.logger({
   winstonInstance: logger,
-  meta: true,
+  meta: env === 'production',
   msg: 'HTTP {{res.statusCode}} {{req.method}} {{res.responseTime}}ms {{req.url}}',
   expressFormat: true,
   colorize: false,
@@ -88,6 +91,7 @@ app.use(expressWinston.errorLogger({
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/vm', vmRoutes)
+app.use('/api/user', userRoutes)
 app.use('/api/message', messageRoutes)
 app.use('/go', appUrlRoute)
 

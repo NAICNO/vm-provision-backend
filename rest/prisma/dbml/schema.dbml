@@ -18,7 +18,7 @@ Table user_profile {
   password String [not null]
   firstName String [not null]
   lastName String [not null]
-  userType String [not null, default: 'User']
+  userType UserType [not null, default: 'USER']
   status UserProfileStatus [not null]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
@@ -130,6 +130,12 @@ Table app_url {
   expiresAt DateTime
   updatedAt DateTime [default: `now()`, not null]
   metadata Json [default: '{}']
+}
+
+Enum UserType {
+  SUPER_ADMIN
+  ADMIN
+  USER
 }
 
 Enum UserProfileStatus {

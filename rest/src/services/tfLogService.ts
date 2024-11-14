@@ -28,7 +28,7 @@ export const convertToTFProgressLog = (obj: any): TFProgressLog | null => {
     // If all checks pass, cast the object and return
     return obj as TFProgressLog
   } catch (error) {
-    logger.error('Error converting object to TerraformLog:', error)
+    logger.error({message: 'Error converting object to TerraformLog:', error})
     return null // or handle the error as appropriate
   }
 }
