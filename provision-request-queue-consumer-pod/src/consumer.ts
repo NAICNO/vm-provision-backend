@@ -1,8 +1,11 @@
 import { Channel, connect, Message } from 'amqplib'
 import fs, { writeFileSync, ensureDirSync } from 'fs-extra'
-import VmProvisioningRequestPayload from './VmProvisioningRequestPayload'
 import * as k8s from '@kubernetes/client-node'
+
+import VmProvisioningRequestPayload from './VmProvisioningRequestPayload'
 import { getEnvironmentVariables, getVolumeMounts, getVolumes } from './providers'
+import { POD_CPU_LIMIT, POD_CPU_REQUEST, POD_MEMORY_LIMIT, POD_MEMORY_REQUEST } from './constants'
+import logger from './logger'
 
 const VM_PROVISIONING_REQUESTS_QUEUE = 'vm_provisioning_requests'
 const VM_PROVISIONING_PROGRESS_QUEUE = 'vm_provisioning_progress'
@@ -14,14 +17,14 @@ const RABBITMQ_URL = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HO
 
 async function generateTfVarFile(vmId: string, payload: VmProvisioningRequestPayload) {
   const folderPath = `/data/terraform/${vmId}`
-  console.log('Generated Folder Path', folderPath)
-  console.log('Selected Provider', payload.provider)
+  logger.info(`Generated Folder Path ${folderPath}`)
+  logger.info(`Selected Provider ${payload.provider}`)
   // Create folder
   ensureDirSync(folderPath)
 
 
-  const terraformFilesFolder = payload.provider
-  const cloudInitFolder = 'cloud-init'
+  const terraformFilesFolder = `hcl/${payload.provider}`
+  const cloudInitFolder = 'hcl/cloud-init'
 
   // Copying terraform files
   await fs.copy(terraformFilesFolder, folderPath)
@@ -42,13 +45,14 @@ async function startConsumer() {
     const channel = await conn.createConfirmChannel()
     await channel.assertQueue(VM_PROVISIONING_REQUESTS_QUEUE, {durable: true})
 
-    console.log(' [*] Waiting for messages in %s.', VM_PROVISIONING_REQUESTS_QUEUE)
+    logger.info(`[*] Waiting for messages in ${VM_PROVISIONING_REQUESTS_QUEUE}`)
 
     await channel.consume(VM_PROVISIONING_REQUESTS_QUEUE, async (msg) => {
       if (msg !== null) {
-        console.log(' [x] Received %s', msg.content.toString())
-
         const payload = JSON.parse(msg.content.toString()) as VmProvisioningRequestPayload
+
+        logger.info(`Request received ${payload?.vm_id} : ${payload?.action}`)
+
         vmId = payload.vm_id
 
         switch (payload.action) {
@@ -62,13 +66,13 @@ async function startConsumer() {
       }
     })
   } catch (error) {
-    console.error(`Error in consumer vmId: ${vmId} - `, error)
+    logger.error({message: `Error in consumer ${vmId}`, vmId, error})
   }
 }
 
 async function handleCreateAction(channel: Channel, msg: Message, payload: VmProvisioningRequestPayload) {
   await generateTfVarFile(payload.vm_id, payload)
-  console.log(`${payload.vm_id} - File created`)
+  logger.info(`Terraform variables file created: ${payload.vm_id}`)
   await ackAndPublish(channel, msg, payload.vm_id, payload.action, payload.provider, 'PROVISIONING_QUEUED', createTerraformVmCreateJob)
 }
 
@@ -78,7 +82,7 @@ async function handleDestroyAction(channel: Channel, msg: Message, payload: VmPr
 
 async function ackAndPublish(channel: Channel, msg: Message, vmId: string, action: string, provider: string, statusMessage: string, jobFunction: Function) {
   channel.ack(msg)
-  console.log(`${vmId} - Message acked`)
+  logger.info(`Message acked vmId: ${vmId}`)
 
   const message = {
     vm_id: vmId,
@@ -97,10 +101,10 @@ async function ackAndPublish(channel: Channel, msg: Message, vmId: string, actio
   const sent = channel.sendToQueue(VM_PROVISIONING_PROGRESS_QUEUE, Buffer.from(JSON.stringify(message)), {persistent: true})
 
   if (sent) {
-    console.log(`${vmId} - Status published`)
+    logger.info(`Status published vmId: ${vmId}`)
     await jobFunction(vmId, provider)
   } else {
-    console.log(`${vmId} - Status not published`)
+    logger.error(`Status not published vmId: ${vmId}`)
   }
 }
 
@@ -143,12 +147,12 @@ async function createTerraformJob(vmId: string, action: string, provider: string
             args: [terraformCommand],
             resources: {
               requests: {
-                cpu: '500m',
-                memory: '1Gi'
+                cpu: POD_CPU_REQUEST,
+                memory: POD_MEMORY_REQUEST,
               },
               limits: {
-                cpu: '1',
-                memory: '2Gi'
+                cpu: POD_CPU_LIMIT,
+                memory: POD_MEMORY_LIMIT,
               }
             }
           }],
@@ -161,10 +165,10 @@ async function createTerraformJob(vmId: string, action: string, provider: string
   }
 
   try {
-    const response = await k8sApi.createNamespacedJob('default', jobManifest)
-    console.log('Job created', response.body)
+    await k8sApi.createNamespacedJob('default', jobManifest)
+    logger.info(`Job created vmId: ${vmId} action: ${action}`)
   } catch (err) {
-    console.error('Error creating job:', err)
+    logger.error({message: 'Error creating job vmId: ${vmId} action: ${action}', err})
   }
 }
 
