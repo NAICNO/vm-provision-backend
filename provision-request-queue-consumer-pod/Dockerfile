@@ -9,4 +9,6 @@ RUN yarn global add ts-node
 
 COPY . .
 
-CMD ["ts-node", "consumer.ts"]
+ENV NODE_ENV=production
+
+CMD ["ts-node", "src/consumer.ts"]
