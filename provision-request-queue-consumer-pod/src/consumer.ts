@@ -4,7 +4,13 @@ import * as k8s from '@kubernetes/client-node'
 
 import VmProvisioningRequestPayload from './VmProvisioningRequestPayload'
 import { getEnvironmentVariables, getVolumeMounts, getVolumes } from './providers'
-import { POD_CPU_LIMIT, POD_CPU_REQUEST, POD_MEMORY_LIMIT, POD_MEMORY_REQUEST } from './constants'
+import {
+  POD_CPU_LIMIT,
+  POD_CPU_REQUEST,
+  POD_MEMORY_LIMIT,
+  POD_MEMORY_REQUEST,
+  TERRAFORM_RUNNER_IMAGE
+} from './constants'
 import logger from './logger'
 
 const VM_PROVISIONING_REQUESTS_QUEUE = 'vm_provisioning_requests'
@@ -110,8 +116,6 @@ async function ackAndPublish(channel: Channel, msg: Message, vmId: string, actio
 
 async function createTerraformJob(vmId: string, action: string, provider: string) {
 
-  const imageName = 'europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker-dev/terraform-runner:latest'
-
   const jobType = action === 'CREATE' ? 'create' : 'destroy'
   const jobName = `tf-${jobType}-job-${vmId}`
   const terraformCommand = action === 'CREATE' ?
@@ -139,7 +143,7 @@ async function createTerraformJob(vmId: string, action: string, provider: string
         spec: {
           containers: [{
             name: 'terraform',
-            image: imageName,
+            image: TERRAFORM_RUNNER_IMAGE,
             volumeMounts: getVolumeMounts(vmId, provider),
             env: getEnvironmentVariables(vmId, action, provider),
             workingDir: `/terraform/${vmId}`,
