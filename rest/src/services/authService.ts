@@ -1,107 +1,30 @@
-import jwt, { JwtPayload } from 'jsonwebtoken'
-import axios from 'axios'
+import { TokenSet } from 'openid-client'
+import { Request } from 'express'
 
 import { ErrorMessages } from '../utils/errorMessages'
-import * as queryString from 'node:querystring'
-import jwksClient from 'jwks-rsa'
-import logger from '../utils/logger'
+import { client } from '../utils/authUtils'
 
-export const fetchTokens = async (code: string, nonce: string) => {
-
-  const data = {
-    grant_type: 'authorization_code',
-    code: code,
-    redirect_uri: process.env.AUTH_REDIRECT_URL,
-    nonce: nonce,
-  }
-
-  try {
-    const response = await axios.post('https://oidc.fp.educloud.no/ec-oidc-provider/token', data,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': getAuthHeader()
-        },
-      }
-    )
-
-    const {access_token, id_token, refresh_token} = response.data
-
-    const user = await validateIdToken(id_token)
-
-    return {
-      accessToken: access_token,
-      idToken: id_token,
-      refreshToken: refresh_token,
-      oidcUser: user
-    }
-  } catch (error) {
-    logger.error({message: 'Error fetching external tokens', error})
-    throw new Error(ErrorMessages.TokenCannotBeObtained)
-  }
-}
-
-export const getExpirationOfToken = (token: string): number => {
-  const decoded = jwt.decode(token) as JwtPayload
-  if (!decoded.exp) {
-    throw new Error(ErrorMessages.UserNotAuthorized)
-  }
-  return decoded.exp
-}
-
-export const refreshTokens = async (refreshToken: string) => {
-  const data = {
-    grant_type: 'refresh_token',
-    refresh_token: refreshToken,
-    scope: 'openid profile email',
-  }
-
-  try {
-    const response = await axios.post('https://oidc.fp.educloud.no/ec-oidc-provider/token', data,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': getAuthHeader()
-        },
-      }
-    )
-
-    const {access_token, id_token, refresh_token} = response.data
-
-    const user = await validateIdToken(id_token)
-
-    return {
-      accessToken: access_token,
-      idToken: id_token,
-      refreshToken: refresh_token,
-      oidcUser: user
-    }
-  } catch (error) {
-    logger.error({message: 'Error refreshing tokens', error})
-    throw new Error(ErrorMessages.TokenRefreshFailed)
-  }
-}
-
-
-export function validateIdToken(token: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    jwt.verify(
-      token,
-      getKey,
-      {
-        algorithms: ['RS256'],
-        issuer: 'https://oidc.fp.educloud.no/ec-oidc-provider/',
-        audience: process.env.AUTH_CLIENT_ID,
-      },
-      (err, decoded) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(decoded)
-        }
-      }
-    )
+export const getLoginUrl = async () => {
+  return client?.authorizationUrl({
+    scope: 'openid profile email organization',
   })
+}
+
+export const fetchTokens = async (req: Request): Promise<TokenSet | undefined> => {
+  const params = client?.callbackParams(req)
+  return client?.callback(process.env.SIGMA_REDIRECT_URI!, params!)
+}
+
+export const getUserInfo = async (accessToken: string) => {
+  return client?.userinfo(accessToken)
+}
+
+export const checkTokenExpiry = (tokenSet?: TokenSet): boolean => {
+  return !!tokenSet?.expired()
+}
+
+export const refreshTokens = async (tokenSet: TokenSet): Promise<TokenSet> => {
+  return await client!.refresh(tokenSet.refresh_token!)
 }
 
 export const validateApiKey = async (apiKey: string) => {
@@ -119,45 +42,11 @@ export const validateApiKey = async (apiKey: string) => {
   }
 }
 
-const getAuthHeader = () => {
-  const auth = Buffer.from(`${process.env.AUTH_CLIENT_ID}:${process.env.AUTH_CLIENT_SECRET}`).toString('base64')
-  return `Basic ${auth}`
-}
-
-export const decodeIdToken = (idToken: string) => {
-  return jwt.decode(idToken)
-}
-export const signAccessToken = (accessToken: string) => {
-  const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET
-  if (!accessTokenSecret) {
-    throw new Error(ErrorMessages.TokenSecretNotProvided)
-  }
-
-  const decodedAccessToken = jwt.decode(accessToken) as string
-  return jwt.sign(decodedAccessToken, accessTokenSecret)
-}
-
-
-const client = jwksClient({
-  jwksUri: 'https://oidc.fp.educloud.no/ec-oidc-provider/jwk',
-})
-
-function getKey(header: any, callback: any) {
-  client.getSigningKey(header.kid, function (err, key) {
-    if (err) {
-      callback(err, null)
-    } else {
-      const signingKey = key?.getPublicKey()
-      callback(null, signingKey)
-    }
+export const getLogoutUrl = (idToken: string) => {
+  // Construct the logout URL.
+  // Note: If no idToken is available, you can omit id_token_hint.
+  return client?.endSessionUrl({
+    id_token_hint: idToken,
+    post_logout_redirect_uri: process.env.SIGMA_LOGOUT_REDIRECT_URI // The URI to redirect back to after logout
   })
-}
-
-export const getLogoutUrl = (idTokenHint: string | null) => {
-  return `${process.env.AUTH_END_SESSION_URL}?${queryString.stringify(
-    {
-      id_token_hint: idTokenHint,
-      post_logout_redirect_uri: process.env.AUTH_LOGOUT_REDIRECT_URL,
-    }
-  )}`
 }

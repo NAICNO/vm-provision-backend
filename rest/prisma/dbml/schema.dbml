@@ -83,6 +83,7 @@ Table provider {
   description String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
+  enabled Boolean [not null, default: true]
   VmTemplate vm_template [not null]
 }
 

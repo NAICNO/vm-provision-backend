@@ -12,14 +12,14 @@ export const sleep = (ms: number) => {
 }
 
 export const getFolderNameForProvider = (providerName: string) => {
-  if (providerName.toLowerCase() === 'nrec') {
-    return 'nrec'
-  } else if (providerName.toLowerCase() === 'google cloud') {
-    return 'google-cloud'
-  } else if (providerName.toLowerCase() === 'aws') {
-    return 'aws'
-  } else if (providerName.toLowerCase() === 'azure') {
-    return 'azure'
+  const providerMap: { [key: string]: string } = {
+    'nrec': 'nrec',
+    'nrec uio': 'nrec-uio',
+    'nrec uib': 'nrec-uib',
+    'google cloud': 'google-cloud',
+    'aws': 'aws',
+    'azure': 'azure'
   }
-  return 'nrec'
+
+  return providerMap[providerName.toLowerCase()] || 'nrec'
 }

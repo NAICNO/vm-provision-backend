@@ -1,12 +1,12 @@
 import express from 'express'
-import { logout, authenticate, getAuthStatus, deleteUserProfile } from '../controllers/authController'
-import { requireReauthentication } from '../middlewares/authMiddleware'
+import { login, logout, authenticate, getAuthStatus } from '../controllers/authController'
+
 
 const router = express.Router()
 
-router.post('/authenticate', authenticate)
+router.get('/login', login)
+router.get('/callback', authenticate)
 router.get('/status', getAuthStatus)
 router.post('/logout', logout)
-router.delete('/delete', requireReauthentication, deleteUserProfile)
 
 export default router

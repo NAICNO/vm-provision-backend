@@ -2,6 +2,11 @@ import './instrument'
 import express, { Express } from 'express'
 import * as http from 'http'
 import dotenv from 'dotenv'
+
+const env = process.env.NODE_ENV || 'development'
+const envFile = `.env.${env}`
+dotenv.config({path: envFile})
+
 import cors from 'cors'
 import * as Sentry from '@sentry/node'
 import session from 'express-session'
@@ -10,11 +15,6 @@ import { createClient } from 'redis'
 import expressWinston from 'express-winston'
 
 import logger from './src/utils/logger'
-
-const env = process.env.NODE_ENV || 'development'
-
-const envFile = env ? '.env.production' : '.env'
-dotenv.config({path: envFile})
 
 import { initializeSocketIO } from './src/sockets'
 import authRoutes from './src/api/routes/authRoutes'
@@ -25,6 +25,7 @@ import appUrlRoute from './src/api/routes/appUrlRoute'
 
 import { handleError } from './src/api/middlewares/errorHandler'
 import { connectToRabbitMQ } from './src/utils/queueUtils'
+import { initializeAuthClient } from './src/utils/authUtils'
 import './src/cronJobs'
 
 
@@ -98,6 +99,10 @@ app.use('/go', appUrlRoute)
 // Error handlers
 Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
+
+initializeAuthClient().catch(error => {
+  console.error('Failed to initialize auth client:', error)
+})
 
 connectToRabbitMQ()
 
