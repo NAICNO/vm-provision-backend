@@ -1,40 +1,31 @@
 import { prisma } from '../models/prismaClient'
 import { UserProfile, UserActivityType, UserProfileStatus, UserType } from '@prisma/client'
-import { getFirstName, getLastName } from '../utils/utils'
-import { ErrorMessages } from '../utils/errorMessages'
 
 export const createUserProfileWithOidcUser = async (oidcUser: any, isAdmin: boolean) => {
-  const {email, user, name} = oidcUser
+  const {email, preferred_username, given_name, family_name} = oidcUser
 
   const newUserProfile: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'> = {
     email: email,
-    username: user,
+    username: preferred_username,
     password: '',
-    firstName: getFirstName(name),
-    lastName: getLastName(name),
+    firstName: given_name || '',
+    lastName: family_name || '',
     userType: isAdmin ? UserType.ADMIN : UserType.USER,
     status: UserProfileStatus.ACTIVE,
   }
   return await createUserProfile(newUserProfile)
 }
 
-export const updateUserProfileWithOidcUser = async (userProfile: UserProfile, oidcUser: any, isAdmin: boolean) => {
+export const updateUserProfileWithOidcUser = async (userProfile: UserProfile, oidcUser: any) => {
 
-  const {email, user, name} = oidcUser
+  const {email, preferred_username, given_name, family_name} = oidcUser
 
-  const userType = userProfile.userType === UserType.SUPER_ADMIN
-    ? UserType.SUPER_ADMIN // Preserve SUPER_ADMIN if already set
-    : isAdmin
-      ? UserType.ADMIN
-      : UserType.USER
-
-  const updatedUserProfile: Omit<UserProfile, 'userId' | 'createdAt'> = {
+  const updatedUserProfile: Omit<UserProfile, 'userId' | 'createdAt' | 'userType'> = {
     email: email,
-    username: user,
+    username: preferred_username,
     password: '',
-    firstName: getFirstName(name),
-    lastName: getLastName(name),
-    userType: userType,
+    firstName: given_name,
+    lastName: family_name,
     status: userProfile.status, // keep the status
     updatedAt: new Date(),
   }
@@ -44,8 +35,7 @@ export const updateUserProfileWithOidcUser = async (userProfile: UserProfile, oi
     userProfile.email !== updatedUserProfile.email ||
     userProfile.username !== updatedUserProfile.username ||
     userProfile.firstName !== updatedUserProfile.firstName ||
-    userProfile.lastName !== updatedUserProfile.lastName ||
-    userProfile.userType !== updatedUserProfile.userType
+    userProfile.lastName !== updatedUserProfile.lastName
 
   // If no changes are detected, return the existing profile
   if (!hasChanges) {
@@ -63,18 +53,6 @@ export const updateUserProfileWithOidcUser = async (userProfile: UserProfile, oi
     },
     data: updatedUserProfile,
   })
-}
-
-export const sanitizeUserProfile = (userProfile: UserProfile) => {
-  // remove password, status, createdAt, updatedAt
-  return {
-    userId: userProfile.userId,
-    email: userProfile.email,
-    username: userProfile.username,
-    firstName: userProfile.firstName,
-    lastName: userProfile.lastName,
-    userType: userProfile.userType,
-  }
 }
 
 export const getAllUserProfiles = async () => {
@@ -111,22 +89,6 @@ export const findUsersByStatus = async (status: UserProfileStatus) => {
       status: status,
     },
   })
-}
-
-export const validateUserProjectMembership = (projects: string[]): boolean => {
-  const naicProjectId = process.env.NAIC_EDUCLOUD_PROJECT_ID
-  if (!naicProjectId) {
-    throw new Error(ErrorMessages.InternalServerError)
-  }
-  return projects.includes(naicProjectId)
-}
-
-export const validateUserProjectAdmin = (groups: string[]): boolean => {
-  const naicProjectId = process.env.NAIC_EDUCLOUD_PROJECT_ID
-  if (!naicProjectId) {
-    throw new Error(ErrorMessages.InternalServerError)
-  }
-  return groups.includes(`${naicProjectId}-admin-group`)
 }
 
 const createUserProfile = async (user: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>) => {

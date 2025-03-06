@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: rest-backend-deployment
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: rest-backend
@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
         - name: rest-backend
-          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker-dev/rest-backend:latest
+          image: europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/rest-backend:latest
           ports:
             - containerPort: 3000
           resources:
             requests:
-              memory: "2Gi"
+              memory: "1Gi"
               cpu: "500m"
             limits:
-              memory: "4Gi"
+              memory: "2Gi"
               cpu: "2"

@@ -19,6 +19,40 @@ $$;
 DO
 $$
     DECLARE
+        nrec_uio_id uuid;
+    BEGIN
+        INSERT INTO provider (provider_name, description) VALUES ('NREC UiO', 'Norwegian Research and Education Cloud') RETURNING provider_id INTO nrec_uio_id;
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Medium', nrec_uio_id, 1, 4, 20, 'GOLD Ubuntu 24.04 LTS', 'Standard VM for medium workloads', 'm1.medium', '{ "username": "ubuntu", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nrec_uio_id, 2, 8, 20, 'GOLD CentOS Stream 10', 'Standard VM for large workloads', 'm1.large', '{ "username": "cloud-user",  "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Extra Large', nrec_uio_id, 4, 16, 20, 'GOLD CentOS Stream 10', 'Standard VM for extra large workloads', 'm1.xlarge', '{ "username": "cloud-user", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('GPU Extra Large (1 x L40S)', nrec_uio_id, 16, 120, 100, 'vGPU Ubuntu 24.04 LTS', 'GPU VM for large workloads (1 x L40S)', 'gr1.L40S.24g.4xlarge', '{ "username": "ubuntu", "tags": ["simple", "advanced"]}', true);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nrec_uio_id, 2, 8, 20, 'GOLD CentOS Stream 10', 'Virtual machine without GPU', 'm1.large', '{ "username": "cloud-user", "tags": ["simple"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('GPU Extra Large (1 x L40S)', nrec_uio_id, 16, 120, 100, 'vGPU Ubuntu 24.04 LTS', 'Virtual machine with GPU (1 x L40S)', 'gr1.L40S.24g.4xlarge', '{ "username": "ubuntu", "tags": [ "simple"]}', true);
+    END
+$$;
+
+DO
+$$
+    DECLARE
+        nrec_uib_id uuid;
+    BEGIN
+        INSERT INTO provider (provider_name, description) VALUES ('NREC UiB', 'Norwegian Research and Education Cloud') RETURNING provider_id INTO nrec_uib_id;
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Medium', nrec_uib_id, 1, 4, 20, 'GOLD Ubuntu 24.04 LTS', 'Standard VM for medium workloads', 'm1.medium', '{ "username": "ubuntu", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nrec_uib_id, 2, 8, 20, 'GOLD CentOS Stream 10', 'Standard VM for large workloads', 'm1.large', '{ "username": "cloud-user",  "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Extra Large', nrec_uib_id, 4, 16, 20, 'GOLD CentOS Stream 10', 'Standard VM for extra large workloads', 'm1.xlarge', '{ "username": "cloud-user", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('GPU Extra Large (1 x L40S)', nrec_uib_id, 16, 120, 100, 'vGPU Ubuntu 24.04 LTS', 'GPU VM for large workloads (1 x L40S)', 'gr1.L40S.24g.4xlarge', '{ "username": "ubuntu", "tags": ["simple", "advanced"]}', false);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nrec_uib_id, 2, 8, 20, 'GOLD CentOS Stream 10', 'Virtual machine without GPU', 'm1.large', '{ "username": "cloud-user", "tags": ["simple"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('GPU Extra Large (1 x L40S)', nrec_uib_id, 16, 120, 100, 'vGPU Ubuntu 24.04 LTS', 'Virtual machine with GPU (1 x L40S)', 'gr1.L40S.24g.4xlarge', '{ "username": "ubuntu", "tags": [ "simple"]}', true);
+    END
+$$;
+
+DO
+$$
+    DECLARE
         gcloud_id uuid;
     BEGIN
         INSERT INTO provider (provider_name, description) VALUES ('Google Cloud', 'Google Cloud') RETURNING provider_id INTO gcloud_id;

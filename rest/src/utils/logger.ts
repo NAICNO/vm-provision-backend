@@ -9,7 +9,7 @@ const devFormat = printf(({level, message, timestamp, stack, ...meta}) => {
   let isMetaEmpty = false
   if(Object.keys(meta).length === 0) {
     isMetaEmpty = true
-  } else if (Object.keys(meta).includes('meta') && (Object.keys(meta.meta).length === 0)) {
+  } else if (Object.keys(meta).includes('meta') && (Object.keys(meta['meta'] as object).length === 0)) {
     isMetaEmpty = true
   }
 

@@ -1,4 +1,4 @@
-import {V1EnvVar, V1VolumeMount} from '@kubernetes/client-node'
+import { V1EnvVar, V1VolumeMount } from '@kubernetes/client-node'
 
 export const getEnvironmentVariables = (vmId: string, action: string, provider: string): V1EnvVar[] => {
   const commonEnv = [
@@ -58,6 +58,68 @@ export const getEnvironmentVariables = (vmId: string, action: string, provider: 
           secretKeyRef: {
             name: 'nrec-secret',
             key: 'projectname'
+          }
+        }
+      },
+    ]
+  case 'nrec-uio':
+    return [
+      ...commonEnv,
+      {
+        name: 'OS_USERNAME',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'username'
+          }
+        }
+      },
+      {
+        name: 'OS_PASSWORD',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'password'
+          }
+        }
+      },
+      {
+        name: 'OS_PROJECT_NAME',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'projectname-uio'
+          }
+        }
+      },
+    ]
+  case 'nrec-uib':
+    return [
+      ...commonEnv,
+      {
+        name: 'OS_USERNAME',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'username'
+          }
+        }
+      },
+      {
+        name: 'OS_PASSWORD',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'password'
+          }
+        }
+      },
+      {
+        name: 'OS_PROJECT_NAME',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nrec-secret',
+            key: 'projectname-uib'
           }
         }
       },

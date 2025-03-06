@@ -1,27 +1,33 @@
 import { NextFunction, Request, Response } from 'express'
+import { TokenSet } from 'openid-client'
+import { UserActivityType, UserProfileStatus } from '@prisma/client'
+
 import * as AuthService from '../../services/authService'
 import * as UserService from '../../services/userService'
-import { UserActivityType, UserProfileStatus } from '@prisma/client'
 import { ErrorMessages } from '../../utils/errorMessages'
 import logger from '../../utils/logger'
 
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const loginUrl = await AuthService.getLoginUrl()
+    if (loginUrl !== undefined) {
+      res.redirect(loginUrl)
+    } else {
+      throw new Error(ErrorMessages.InternalServerError)
+    }
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const {code, nonce, isReauth} = req.body
+    const tokenSet = await AuthService.fetchTokens(req)
+    // @ts-ignore
+    const oidcUser = await AuthService.getUserInfo(tokenSet.access_token!)
 
-    const {idToken, accessToken, refreshToken, oidcUser} = await AuthService.fetchTokens(code, nonce)
+    let userProfile = await UserService.findUserProfileByEmail(oidcUser!.email!)
 
-    const accessTokenExpiresAt = AuthService.getExpirationOfToken(accessToken)
-    const refreshTokenExpiresAt = AuthService.getExpirationOfToken(refreshToken)
-
-    // Validate user project membership
-    const isMember = UserService.validateUserProjectMembership(oidcUser.projects)
-
-    if (!isMember) {
-      throw new Error(ErrorMessages.UserIsNotMemberOfProject)
-    }
-
-    let userProfile = await UserService.findUserProfileByEmail(oidcUser.email)
 
     if (userProfile?.status === UserProfileStatus.DISABLED) {
       throw new Error(ErrorMessages.UserDisabled)
@@ -29,61 +35,60 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       throw new Error(ErrorMessages.UserPendingDeletion)
     }
 
-    // Check if the user is a project admin
-    const isAdmin = UserService.validateUserProjectAdmin(oidcUser.groups)
-
     // Update local user type with OIDC user data if necessary
     if (userProfile) {
-      userProfile = await UserService.updateUserProfileWithOidcUser(userProfile, oidcUser, isAdmin)
+      userProfile = await UserService.updateUserProfileWithOidcUser(userProfile, oidcUser)
     }
 
     if (!userProfile) {
-      userProfile = await UserService.createUserProfileWithOidcUser(oidcUser, isAdmin)
+      userProfile = await UserService.createUserProfileWithOidcUser(oidcUser, false)
     }
 
-    const sanitizedUserProfile = UserService.sanitizeUserProfile(userProfile)
-
-    req.session.idToken = idToken
-    req.session.accessToken = accessToken
-    req.session.refreshToken = refreshToken
-    req.session.accessTokenExpiresAt = accessTokenExpiresAt * 1000
-    req.session.refreshTokenExpiresAt = refreshTokenExpiresAt * 1000
+    req.session.tokenSet = tokenSet
     req.session.user = userProfile
+    res.redirect(process.env.AUTH_POST_LOGIN_REDIRECT_URL!)
 
-    if (isReauth) {
-      // Set re-authentication timestamp
-      req.session.reauthenticatedAt = Date.now()
-    }
 
-    res.json({success: true, user: sanitizedUserProfile})
-
-    UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS)
+    await UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS)
     logger.info(`User ${userProfile.userId} logged in`)
   } catch (error) {
-    UserService.logUserActivity('user-unknown', UserActivityType.USER_LOGIN_FAILED, '', {error: error})
+    console.log('Auth function Error:', error)
+    await UserService.logUserActivity('user-unknown', UserActivityType.USER_LOGIN_FAILED, '', {error: error})
     next(error)
   }
 }
 
-
 export const getAuthStatus = async (req: Request, res: Response) => {
-  if (req.session && req.session.idToken && req.session.user) {
-    try {
-      await AuthService.validateIdToken(req.session.idToken)
+  if (req.session && req.session.tokenSet) {
+    // Rehydrate the TokenSet instance from the stored plain object
+    const tokenSet = new TokenSet(req.session.tokenSet)
+
+    const isTokensExpired = AuthService.checkTokenExpiry(tokenSet)
+    if (!isTokensExpired) { // Tokens are still valid
       res.json({
         isAuthenticated: true,
         user: req.session.user,
       })
-    } catch (error) {
-      logger.error('Error validating id token', error)
-      res.json({
-        isAuthenticated: false,
-        user: null,
-      })
+    } else { // Tokens are expired - try to refresh
+      try {
+        // const user = await AuthService.getUserInfo(newTokenSet.access_token!)
+        req.session.tokenSet = await AuthService.refreshTokens(req.session.tokenSet)
+        // req.session.user = user
+        res.json({
+          isAuthenticated: true,
+          user: req.session.user,
+        })
+      } catch (error) { // Refresh failed
+        logger.error('Error refreshing tokens', error)
+        res.json({
+          isAuthenticated: false,
+          user: null,
+        })
+      }
     }
-  } else {
+  } else { // No tokens in session
     res.json({
-      authenticated: false,
+      isAuthenticated: false,
       user: null,
     })
   }
@@ -91,13 +96,27 @@ export const getAuthStatus = async (req: Request, res: Response) => {
 
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
-  const idTokenHint = req.session.idToken || null
-  const userId = req.session?.user?.userId || 'user-unknown'
-  req.session.destroy(() => {
-    const logoutUrl = AuthService.getLogoutUrl(idTokenHint)
-    res.json({logoutUrl})
-    UserService.logUserActivity(userId, UserActivityType.USER_LOGGED_OUT)
-  })
+  try {
+    // Retrieve the ID token from the stored tokenSet (if available)
+    const idToken = req.session.tokenSet && req.session.tokenSet.id_token
+    const userId = req.session?.user?.userId || 'user-unknown'
+    // Clear your local session
+    req.session.destroy((err) => {
+      if (err) {
+        return next(err)
+      }
+
+      // Construct the logout URL.
+      // Note: If no idToken is available, you can omit id_token_hint.
+      const logoutUrl = AuthService.getLogoutUrl(idToken!)
+
+      // Redirect the user to Keycloak's logout endpoint
+      res.json({logoutUrl})
+      UserService.logUserActivity(userId || 'user-unknown', UserActivityType.USER_LOGGED_OUT)
+    })
+  } catch (error) {
+    next(error)
+  }
 }
 
 export const deleteUserProfile = async (req: Request, res: Response, next: NextFunction) => {

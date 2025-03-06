@@ -69,7 +69,11 @@ export const getAllVmsOfUser = async (userId: string) => {
 }
 
 export const getAllProviders = async () => {
-  return prisma.provider.findMany()
+  return prisma.provider.findMany({
+    where: {
+      enabled: true,
+    }
+  })
 }
 
 export const getProviderById = async (providerId: string) => {
@@ -137,6 +141,9 @@ export const getAllVmTemplates = async () => {
         },
         where: {
           enabled: true,
+          provider: {
+            enabled: true,
+          }
         }
       }
     )
