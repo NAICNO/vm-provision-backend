@@ -33,6 +33,14 @@ runcmd:
     if [ -f /etc/debian_version ]; then
       curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/debian.sh | bash
     fi
+  - |
+    if [ -n "${jupyter_token}" ]; then
+      # Fetch Jupyter init script
+      curl -fsSL "https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/refs/heads/master/cloud-init/projects/jupyter-notebook/jupyter_init.sh" -o /usr/local/bin/jupyter_init.sh
+      chmod 0755 /usr/local/bin/jupyter_init.sh
+      # Run script as specified user with token and optional URLs
+      su - ${username} -c "bash -lc '/usr/local/bin/jupyter_init.sh \"${jupyter_token}\" \"${jupyter_init_start_url}\" \"${jupyter_init_complete_url}\"'"
+    fi
 
 phone_home:
   url: ${phone_home_url}

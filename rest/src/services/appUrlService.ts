@@ -1,4 +1,3 @@
-import * as crypto from 'crypto'
 import { AppUrl, PrismaClient, UrlAction } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
@@ -6,6 +5,7 @@ import { prisma } from '../models/prismaClient'
 import * as VmService from './vmService'
 import { ErrorMessages } from '../utils/errorMessages'
 import logger from '../utils/logger'
+import { generateToken } from '../utils/utils'
 
 export const createAppUrl = async (tx: Omit<PrismaClient, ITXClientDenyList>, action: UrlAction, metadata: any): Promise<AppUrl> => {
   return tx.appUrl.create({
@@ -42,6 +42,20 @@ export const handleAppUrl = async (appUrl: AppUrl) => {
     await markAppUrlAsUsed(appUrl)
     break
   }
+  case UrlAction.NOTIFY_VM_JUPYTERNOTEBOOK_INIT_START: {
+    const metadata = appUrl.metadata as Record<string, unknown>
+    const vmId = metadata['vmId'] as string
+    logger.info({message: `Jupyter Notebook init started for: ${vmId}`})
+    await markAppUrlAsUsed(appUrl)
+    break
+  }
+  case UrlAction.NOTIFY_VM_JUPYTERNOTEBOOK_INIT_COMPLETE: {
+    const metadata = appUrl.metadata as Record<string, unknown>
+    const vmId = metadata['vmId'] as string
+    logger.info({message: `Jupyter Notebook ini completed for: ${vmId}`})
+    await markAppUrlAsUsed(appUrl)
+    break
+  }
 
   default:
     logger.info({message: `Unknown action type for action type: ${actionType}`, appUrl})
@@ -62,8 +76,4 @@ export const markAppUrlAsUsed = (appUrl?: AppUrl): Promise<AppUrl> => {
       updatedAt: now
     }
   })
-}
-
-const generateToken = (size: number = 48): string => {
-  return crypto.randomBytes(size).toString('base64url')
 }

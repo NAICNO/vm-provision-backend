@@ -30,7 +30,7 @@ import './src/cronJobs'
 
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL,
+  url: process.env.REDIS_URL_GCP,
   password: process.env.REDIS_PASSWORD,
 })
 

@@ -1,3 +1,5 @@
+import * as crypto from 'crypto'
+
 export const getFirstName = (name: string) => {
   const nameArray = name.split(' ')
   return nameArray[0] || ''
@@ -22,4 +24,8 @@ export const getFolderNameForProvider = (providerName: string) => {
   }
 
   return providerMap[providerName.toLowerCase()] || 'nrec'
+}
+
+export const generateToken = (size: number = 48): string => {
+  return crypto.randomBytes(size).toString('base64url')
 }
