@@ -4,12 +4,16 @@ export default interface VmProvisioningRequestPayload {
   action: string
   tf_vars?: {
     vm_id: string
-    vm_name : string
+    vm_name: string
     public_key: string
     image_name: string
     flavor_name: string
     allow_ssh_from_v4: string[]
     init_boot_call_url: string
     phone_home_url: string
+    username?: string,
+    jupyter_token?: string
+    jupyter_init_start_url?: string
+    jupyter_init_complete_url?: string
   }
 }

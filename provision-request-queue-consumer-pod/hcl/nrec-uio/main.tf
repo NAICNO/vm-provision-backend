@@ -44,6 +44,10 @@ resource "openstack_compute_instance_v2" "vm" {
   user_data = templatefile("${path.module}/cloud-init.yaml", {
     phone_home_url = var.phone_home_url
     init_boot_call_url = var.init_boot_call_url
+    username = var.username
+    jupyter_token = var.jupyter_token
+    jupyter_init_start_url = var.jupyter_init_start_url
+    jupyter_init_complete_url = var.jupyter_init_complete_url
   })
 
   depends_on = [

@@ -30,6 +30,20 @@ $$
 
         INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nrec_uio_id, 2, 8, 20, 'GOLD CentOS Stream 10', 'Virtual machine without GPU', 'm1.large', '{ "username": "cloud-user", "tags": ["simple"]}', true);
         INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('GPU Extra Large (1 x L40S)', nrec_uio_id, 16, 120, 100, 'vGPU Ubuntu 24.04 LTS', 'Virtual machine with GPU (1 x L40S)', 'gr1.L40S.24g.4xlarge', '{ "username": "ubuntu", "tags": [ "simple"]}', true);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled)
+        VALUES ('Standard Large with JupyterNotebook', nrec_uio_id, 2, 8, 20,
+                'GOLD Ubuntu 24.04 LTS',
+                'Virtual machine with Jupyter Notebook installed - No GPU', 'm1.large', '{
+            "username": "ubuntu",
+            "applications": [
+              "jupyter-notebook"
+            ],
+            "tags": [
+              "simple"
+            ]
+          }',
+                true);
     END
 $$;
 

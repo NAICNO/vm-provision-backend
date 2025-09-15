@@ -4,13 +4,13 @@ import {
   Prisma,
   PrismaClient,
   Provider,
+  UrlAction,
   UserActivityType,
   VirtualMachine,
-  VmPublicKey,
-  VmTemplate,
   VmEventType,
+  VmPublicKey,
   VmStatus,
-  UrlAction,
+  VmTemplate,
 } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
@@ -20,16 +20,16 @@ import * as UserService from './userService'
 import * as MessageQueueService from './messageQueueService'
 import * as SshKeyService from './sshKeyService'
 import * as AppUrlService from './appUrlService'
+import { getFullAppUrl } from './appUrlService'
 import * as SocketService from './socketService'
 import { URL_ACTION_TO_VM_STATUS_MAP, validNextStates } from '../utils/vmStatusUtils'
 import { VM_PROVISIONING_REQUESTS_QUEUE } from '../utils/constants'
 import VmProvisioningRequestPayload from '../types/VmProvisioningRequestPayload'
 import { GenericResponse } from '../types/GenericResponse'
 
-import { getFolderNameForProvider } from '../utils/utils'
+import { generateToken, getFolderNameForProvider } from '../utils/utils'
 import * as TfLogService from './tfLogService'
 import { CREATE_ACTIONS, DESTROY_ACTIONS } from '../utils/urlActionUtils'
-import { getFullAppUrl } from './appUrlService'
 import logger from '../utils/logger'
 
 export const getAllVmsOfUserWithTemplates = async (userId: string) => {
@@ -175,7 +175,7 @@ const countActiveVms = async (userId: string) => {
   })
 }
 
-const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: string, vmTemplateId: string, vmName: string, sshKeyId: string, duration: number, ipRanges: string[]) => {
+const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: string, vmTemplateId: string, vmName: string, sshKeyId: string, duration: number, ipRanges: string[], metadata: Prisma.JsonObject) => {
   return prisma.virtualMachine.create({
     data: {
       userId: userId,
@@ -185,6 +185,7 @@ const createVm = async (prisma: Omit<PrismaClient, ITXClientDenyList>, userId: s
       duration: duration,
       ipRanges: ipRanges,
       status: VmStatus.TO_BE_PROVISIONED,
+      metadata,
     },
   })
 }
@@ -304,7 +305,30 @@ async function createVmInTransaction(
   }> {
   return prisma.$transaction(async (tx) => {
 
-    const virtualMachine = await createVm(tx, userId, vmTemplateId, vmName, sshKeyId, duration, ipRanges)
+    const templateMetadata = template.metadata as Prisma.JsonObject | null
+    const applications = (templateMetadata?.['applications'] as Prisma.JsonArray | undefined) || []
+
+    let vmMetadata = {} as Prisma.JsonObject
+
+    if (applications.length > 0) {
+      // If there are applications then check for apps
+
+      // Check if jupyter is one of the applications then generate a token and add to applications array in vm metadata
+      if (applications.includes('jupyter-notebook')) {
+        const jupyterToken = generateToken()
+        vmMetadata = {
+          ...vmMetadata,
+          applications: [
+            {
+              name: 'jupyter-notebook',
+              token: jupyterToken,
+            }
+          ]
+        }
+      }
+    }
+
+    const virtualMachine = await createVm(tx, userId, vmTemplateId, vmName, sshKeyId, duration, ipRanges, vmMetadata)
 
     const vmId = virtualMachine.vmId
 
@@ -314,7 +338,38 @@ async function createVmInTransaction(
     const notifyVmInitStartUrlString = getFullAppUrl(notifyVmInitStartUrl)
     const notifyVmInitCompleteUrlString = getFullAppUrl(notifyVmInitCompleteUrl)
 
-    const messageToPublish = prepareVmCreationRequestMessage(virtualMachine, template, provider, publicKey, notifyVmInitStartUrlString, notifyVmInitCompleteUrlString)
+    let jupyterInitStartUrlString = ''
+    let jupyterInitCompleteUrlString = ''
+    let jupyterToken = ''
+    const metadata = virtualMachine.metadata as Prisma.JsonObject | null
+
+    // Check for applications in vm metadata
+    const applicationsInVmMetadata = (metadata?.['applications'] as Prisma.JsonArray | undefined) || []
+
+    // applications is an array of objects with name and token properties
+    // Find the jupyter-notebook application object
+    if (Array.isArray(applicationsInVmMetadata)) {
+      const jupyterApp = applicationsInVmMetadata.find(app => (app as Prisma.JsonObject)?.['name'] === 'jupyter-notebook') as Prisma.JsonObject | undefined
+      if (jupyterApp) {
+        jupyterToken = jupyterApp['token'] as string || ''
+        const jupyterNotifyVmInitStartUrl = await AppUrlService.createAppUrl(tx, UrlAction.NOTIFY_VM_JUPYTERNOTEBOOK_INIT_START, {vmId: virtualMachine.vmId})
+        const jupyterNotifyVmInitCompleteUrl = await AppUrlService.createAppUrl(tx, UrlAction.NOTIFY_VM_JUPYTERNOTEBOOK_INIT_COMPLETE, {vmId: virtualMachine.vmId})
+        jupyterInitStartUrlString = getFullAppUrl(jupyterNotifyVmInitStartUrl)
+        jupyterInitCompleteUrlString = getFullAppUrl(jupyterNotifyVmInitCompleteUrl)
+      }
+    }
+
+    const messageToPublish = prepareVmCreationRequestMessage(
+      virtualMachine,
+      template,
+      provider,
+      publicKey,
+      notifyVmInitStartUrlString,
+      notifyVmInitCompleteUrlString,
+      jupyterToken,
+      jupyterInitStartUrlString,
+      jupyterInitCompleteUrlString
+    )
     const messageToPublishString = JSON.stringify(messageToPublish)
 
     const message = await MessageQueueService
@@ -544,13 +599,21 @@ const prepareVmCreationRequestMessage = (
   provider: Provider,
   publicKey: VmPublicKey,
   notifyVmInitStartUrlString: string,
-  notifyVmInitCompleteUrlString: string)
+  notifyVmInitCompleteUrlString: string,
+  jupyterToken?: string,
+  jupyterInitStartUrlString?: string,
+  jupyterInitCompleteUrlString?: string,
+)
   : VmProvisioningRequestPayload => {
 
   const vm_name = virtualMachine.vmName
   const public_key = publicKey.publicKey
   const image_name = template.os
   const flavor_name = template.falvorName
+  // Typed metadata extraction and username extraction
+  const metadata = template.metadata as Prisma.JsonObject | null
+  const username = typeof metadata?.['username'] === 'string' ? (metadata['username'] as string) : ''
+
   const allow_ssh_from_v4 = virtualMachine.ipRanges
 
   const vm_id = virtualMachine.vmId
@@ -565,6 +628,10 @@ const prepareVmCreationRequestMessage = (
     allow_ssh_from_v4,
     init_boot_call_url: notifyVmInitStartUrlString,
     phone_home_url: notifyVmInitCompleteUrlString,
+    username: username || '',
+    jupyter_token: jupyterToken || '',
+    jupyter_init_start_url: jupyterInitStartUrlString || '',
+    jupyter_init_complete_url: jupyterInitCompleteUrlString || '',
   }
 
   return {

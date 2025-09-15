@@ -28,3 +28,16 @@ resource "openstack_networking_secgroup_rule_v2" "rule_icmp_access_ipv4" {
   remote_ip_prefix  = var.allow_ssh_from_v4[count.index]
   security_group_id = openstack_networking_secgroup_v2.instance_ssh_access.id
 }
+
+# Allow port 8008 from IPv4 net for JupyterNotebook
+resource "openstack_networking_secgroup_rule_v2" "rule_jupyter_access_ipv4" {
+  region            = var.region
+  count             = length(var.allow_ssh_from_v4)
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 8008
+  port_range_max    = 8008
+  remote_ip_prefix  = var.allow_ssh_from_v4[count.index]
+  security_group_id = openstack_networking_secgroup_v2.instance_ssh_access.id
+}

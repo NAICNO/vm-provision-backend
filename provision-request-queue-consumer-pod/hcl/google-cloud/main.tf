@@ -55,6 +55,10 @@ resource "google_compute_instance" "default" {
     user-data = templatefile("${path.module}/cloud-init.yaml", {
       init_boot_call_url = var.init_boot_call_url
       phone_home_url     = var.phone_home_url
+      username           = var.username
+      jupyter_token      = var.jupyter_token
+      jupyter_init_start_url    = var.jupyter_init_start_url
+      jupyter_init_complete_url = var.jupyter_init_complete_url
     })
   }
 
