@@ -3,6 +3,7 @@ import * as client from 'openid-client'
 
 import { ErrorMessages } from '../utils/errorMessages'
 import { buildLoginUrl, config } from '../utils/authUtils'
+import logger from '../utils/logger'
 
 export const getLoginUrl = async () => {
   return buildLoginUrl()
@@ -41,7 +42,9 @@ export const getUserInfo = async (accessToken: string, expectedSub?: string) => 
 export const checkTokenExpiry = (sessionToken?: SessionToken): boolean => {
   if (!sessionToken) return true
   if (typeof sessionToken.expired === 'function') {
-    try { return !!sessionToken.expired() } catch { /* fallthrough */ }
+    try { return !!sessionToken.expired() } catch {
+      logger.error('Error checking token expiry using expired() method, falling back to manual check')
+    }
   }
   // Fallback: compute using expires_in and when it was fetched
   const fetchedAt = sessionToken._fetchedAt ?? 0
