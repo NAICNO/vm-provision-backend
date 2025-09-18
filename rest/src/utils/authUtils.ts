@@ -23,14 +23,10 @@ export const initializeAuthClient = async () => {
     config = await client.discovery(
       server,
       clientId,
-      { client_secret: clientSecret },
+      {client_secret: clientSecret},
       client.ClientSecretPost(clientSecret),
-      allowInsecure ? { execute: [client.allowInsecureRequests] } : undefined,
+      allowInsecure ? {execute: [client.allowInsecureRequests]} : undefined,
     )
-
-    if (allowInsecure) {
-      client.allowInsecureRequests(config)
-    }
 
     console.log('Authentication client initialized successfully')
     console.log('Discovery config:', config.serverMetadata().issuer)
