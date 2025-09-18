@@ -39,7 +39,6 @@ export const initializeAuthClient = async () => {
 }
 
 export const buildLoginUrl = () => {
-
   if (!config) throw new Error('Auth client not initialized')
 
   const authorizationEndpoint = config.serverMetadata().authorization_endpoint
