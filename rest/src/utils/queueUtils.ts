@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node'
 import * as MessageQueueService from '../services/messageQueueService'
 import logger from './logger'
 
-let connection: amqp.Connection | null = null
+let connection: amqp.ChannelModel | null = null
 export let channel: amqp.Channel | null = null
 export let isChannelOpen = false
 const rabbitMqUrl = process.env.RABBITMQ_URL_GCP || 'amqp://localhost:5672'
@@ -37,4 +37,3 @@ export async function connectToRabbitMQ() {
 function reconnect() {
   setTimeout(connectToRabbitMQ, 5000) // Reconnect after 5 seconds
 }
-

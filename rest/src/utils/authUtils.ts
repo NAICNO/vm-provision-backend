@@ -16,8 +16,9 @@ export const initializeAuthClient = async () => {
     const server: URL = new URL(discoveryUrl)
 
     // v6: provide client metadata and explicit client authentication method
-    // Allow insecure (HTTP) in local/dev when discovery URL is not HTTPS
-    const allowInsecure = server.protocol === 'http:'
+    // Allow insecure (HTTP) only in non-production environments
+    const isDev = (process.env.NODE_ENV || 'development') !== 'production'
+    const allowInsecure = isDev && server.protocol === 'http:'
 
     config = await client.discovery(
       server,
