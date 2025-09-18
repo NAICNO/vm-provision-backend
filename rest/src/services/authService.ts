@@ -35,7 +35,7 @@ export const fetchTokens = async (req: Request): Promise<SessionToken> => {
 export const getUserInfo = async (accessToken: string, expectedSub?: string) => {
   if (!config) throw new Error('Auth client not initialized')
   // If expectedSub is not provided, skip subject check
-  const subject = expectedSub ?? (client as any).skipSubjectCheck
+  const subject = expectedSub ?? client.skipSubjectCheck
   return client.fetchUserInfo(config, accessToken, subject)
 }
 
@@ -48,7 +48,7 @@ export const checkTokenExpiry = (sessionToken?: SessionToken): boolean => {
   }
   // Fallback: compute using expires_in and when it was fetched
   const fetchedAt = sessionToken._fetchedAt ?? 0
-  const expiresInSec = (sessionToken as any).expires_in as number | undefined
+  const expiresInSec = sessionToken.expires_in as number | undefined
   if (fetchedAt && typeof expiresInSec === 'number') {
     const expiresAtMs = fetchedAt + expiresInSec * 1000 - 5_000 // 5s skew
     return Date.now() >= expiresAtMs
