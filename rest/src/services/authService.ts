@@ -42,8 +42,8 @@ export const getUserInfo = async (accessToken: string, expectedSub?: string) => 
 export const checkTokenExpiry = (sessionToken?: SessionToken): boolean => {
   if (!sessionToken) return true
   if (typeof sessionToken.expired === 'function') {
-    try { return !!sessionToken.expired() } catch {
-      logger.error('Error checking token expiry using expired() method, falling back to manual check')
+    try { return !!sessionToken.expired() } catch (error) {
+      logger.error('Error checking token expiry using expired() method:', error)
     }
   }
   // Fallback: compute using expires_in and when it was fetched
