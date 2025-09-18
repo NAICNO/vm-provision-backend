@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express'
-import { TokenSet } from 'openid-client'
 
 import * as AuthService from '../../services/authService'
 import logger from '../../utils/logger'
@@ -10,14 +9,10 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
     return res.status(401).json({error: 'Unauthorized'})
   }
 
-  // Rehydrate the TokenSet instance from the stored plain object
-  const tokenSet = new TokenSet(req.session.tokenSet)
+  const tokenSet = req.session.tokenSet
 
-  // Check if the access token is expired
-  if (tokenSet.expired()) {
+  if (AuthService.checkTokenExpiry(tokenSet)) {
     try {
-      // Attempt to refresh the token set using the refresh token
-      // 'client' should be your openid-client instance that can perform the refresh operation.
       const refreshedTokenSet = await AuthService.refreshTokens(tokenSet)
       logger.debug({message: 'Tokens refreshed successfully', userId: req.session?.user?.userId})
       req.session.tokenSet = refreshedTokenSet
@@ -28,6 +23,7 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
       req.session.destroy(() => {
         return res.status(401).json({error: 'Authentication error'})
       })
+      return
     }
   }
 

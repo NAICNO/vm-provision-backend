@@ -1,30 +1,69 @@
-import { TokenSet } from 'openid-client'
 import { Request } from 'express'
+import * as client from 'openid-client'
 
 import { ErrorMessages } from '../utils/errorMessages'
-import { client } from '../utils/authUtils'
+import { buildLoginUrl, config } from '../utils/authUtils'
+import logger from '../utils/logger'
 
 export const getLoginUrl = async () => {
-  return client?.authorizationUrl({
-    scope: 'openid profile email organization',
-  })
+  return buildLoginUrl()
 }
 
-export const fetchTokens = async (req: Request): Promise<TokenSet | undefined> => {
-  const params = client?.callbackParams(req)
-  return client?.callback(process.env.SIGMA_REDIRECT_URI!, params!)
+export type SessionToken = client.TokenEndpointResponse & {
+  // optional helpers that may be present
+  expired?: () => boolean
+  claims?: () => any
+  // we may add our own timestamp to compute expiry when helper is absent
+  _fetchedAt?: number
 }
 
-export const getUserInfo = async (accessToken: string) => {
-  return client?.userinfo(accessToken)
+export const fetchTokens = async (req: Request): Promise<SessionToken> => {
+  if (!config) throw new Error('Auth client not initialized')
+
+  // Build the current URL from the incoming Express request
+  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol
+  const host = req.get('host')
+  const currentUrl = new URL(`${proto}://${host}${req.originalUrl}`)
+
+  // Exchange the authorization code for tokens
+  const token = await client.authorizationCodeGrant(config, currentUrl)
+  // record fetch time for fallback expiry checks
+  ;(token as SessionToken)._fetchedAt = Date.now()
+  return token as SessionToken
 }
 
-export const checkTokenExpiry = (tokenSet?: TokenSet): boolean => {
-  return !!tokenSet?.expired()
+export const getUserInfo = async (accessToken: string, expectedSub?: string) => {
+  if (!config) throw new Error('Auth client not initialized')
+  // If expectedSub is not provided, skip subject check
+  const subject = expectedSub ?? client.skipSubjectCheck
+  return client.fetchUserInfo(config, accessToken, subject)
 }
 
-export const refreshTokens = async (tokenSet: TokenSet): Promise<TokenSet> => {
-  return await client!.refresh(tokenSet.refresh_token!)
+export const checkTokenExpiry = (sessionToken?: SessionToken): boolean => {
+  if (!sessionToken) return true
+  if (typeof sessionToken.expired === 'function') {
+    try { return !!sessionToken.expired() } catch (error) {
+      logger.error('Error checking token expiry using expired() method:', error)
+    }
+  }
+  // Fallback: compute using expires_in and when it was fetched
+  const fetchedAt = sessionToken._fetchedAt ?? 0
+  const expiresInSec = sessionToken.expires_in as number | undefined
+  if (fetchedAt && typeof expiresInSec === 'number') {
+    const expiresAtMs = fetchedAt + expiresInSec * 1000 - 5_000 // 5s skew
+    return Date.now() >= expiresAtMs
+  }
+  // As a last resort, consider token expired if we can't determine
+  return true
+}
+
+export const refreshTokens = async (tokenSet: SessionToken): Promise<SessionToken> => {
+  if (!config) throw new Error('Auth client not initialized')
+  if (!tokenSet.refresh_token) throw new Error('Missing refresh token')
+
+  const refreshed = await client.refreshTokenGrant(config, tokenSet.refresh_token)
+  ;(refreshed as SessionToken)._fetchedAt = Date.now()
+  return refreshed as SessionToken
 }
 
 export const validateApiKey = async (apiKey: string) => {
@@ -43,10 +82,10 @@ export const validateApiKey = async (apiKey: string) => {
 }
 
 export const getLogoutUrl = (idToken: string) => {
-  // Construct the logout URL.
-  // Note: If no idToken is available, you can omit id_token_hint.
-  return client?.endSessionUrl({
+  if (!config) throw new Error('Auth client not initialized')
+  const url = client.buildEndSessionUrl(config, {
     id_token_hint: idToken,
-    post_logout_redirect_uri: process.env.SIGMA_LOGOUT_REDIRECT_URI // The URI to redirect back to after logout
+    post_logout_redirect_uri: process.env.SIGMA_LOGOUT_REDIRECT_URI!,
   })
+  return url.toString()
 }
