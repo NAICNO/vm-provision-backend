@@ -10,7 +10,7 @@ dotenv.config({path: envFile})
 import cors from 'cors'
 import * as Sentry from '@sentry/node'
 import session from 'express-session'
-import RedisStore from 'connect-redis'
+import { RedisStore } from 'connect-redis'
 import { createClient } from 'redis'
 import expressWinston from 'express-winston'
 

@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express'
-import { TokenSet } from 'openid-client'
 import { UserActivityType, UserProfileStatus } from '@prisma/client'
 
 import * as AuthService from '../../services/authService'
@@ -60,8 +59,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
 export const getAuthStatus = async (req: Request, res: Response) => {
   if (req.session && req.session.tokenSet) {
-    // Rehydrate the TokenSet instance from the stored plain object
-    const tokenSet = new TokenSet(req.session.tokenSet)
+    const tokenSet = req.session.tokenSet
 
     const isTokensExpired = AuthService.checkTokenExpiry(tokenSet)
     if (!isTokensExpired) { // Tokens are still valid
@@ -71,9 +69,7 @@ export const getAuthStatus = async (req: Request, res: Response) => {
       })
     } else { // Tokens are expired - try to refresh
       try {
-        // const user = await AuthService.getUserInfo(newTokenSet.access_token!)
         req.session.tokenSet = await AuthService.refreshTokens(req.session.tokenSet)
-        // req.session.user = user
         res.json({
           isAuthenticated: true,
           user: req.session.user,
@@ -98,7 +94,7 @@ export const getAuthStatus = async (req: Request, res: Response) => {
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Retrieve the ID token from the stored tokenSet (if available)
-    const idToken = req.session.tokenSet && req.session.tokenSet.id_token
+    const idToken = req.session.tokenSet && (req.session.tokenSet as any).id_token
     const userId = req.session?.user?.userId || 'user-unknown'
     // Clear your local session
     req.session.destroy((err) => {
