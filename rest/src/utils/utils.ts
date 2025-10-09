@@ -20,7 +20,8 @@ export const getFolderNameForProvider = (providerName: string) => {
     'nrec uib': 'nrec-uib',
     'google cloud': 'google-cloud',
     'aws': 'aws',
-    'azure': 'azure'
+    'azure': 'azure',
+    'ibm cloud': 'ibm-cloud',
   }
 
   return providerMap[providerName.toLowerCase()] || 'nrec'

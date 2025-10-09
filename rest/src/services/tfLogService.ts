@@ -116,5 +116,15 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
     }
     }
   }
+
+  const errorTypes = ['diagnostic']
+  if (errorTypes.includes(logType)) {
+    // @ts-ignore
+    const severity = log['diagnostic']?.severity
+    if (severity === 'error') {
+      status = VmStatus.PROVISIONING_FAILED
+    }
+  }
+
   return {status, ip}
 }
