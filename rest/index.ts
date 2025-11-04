@@ -2,6 +2,7 @@ import './instrument'
 import express, { Express } from 'express'
 import * as http from 'http'
 import dotenv from 'dotenv'
+import { randomUUID } from 'crypto'
 
 const env = process.env.NODE_ENV || 'development'
 const envFile = `.env.${env}`
@@ -55,6 +56,13 @@ const server: http.Server = http.createServer(app)
 
 initializeSocketIO(server)
 
+// Add request ID to all requests
+app.use((req, res, next) => {
+  req.id = randomUUID()
+  res.setHeader('X-Request-ID', req.id)
+  next()
+})
+
 app.use(cors({
   origin: 'http://localhost:8080',
   credentials: true
@@ -75,19 +83,63 @@ app.use(
 
 const port = process.env.PORT || 3000
 
-// Request logging
+// Request logging - skip health check endpoints
 app.use(expressWinston.logger({
   winstonInstance: logger,
-  meta: env === 'production',
+  meta: true,
   msg: 'HTTP {{res.statusCode}} {{req.method}} {{res.responseTime}}ms {{req.url}}',
   expressFormat: true,
   colorize: false,
+  dynamicMeta: (req) => ({
+    requestId: req.id,
+    userId: req.session?.user?.userId,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  }),
+  ignoreRoute: (req) => {
+    return req.path === '/health' || req.path === '/ready'
+  }
 }))
 
 // Error logging
 app.use(expressWinston.errorLogger({
   winstonInstance: logger,
 }))
+
+// Middleware to restrict health endpoints to internal access only
+const internalOnlyMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const clientIP = req.ip || req.socket.remoteAddress || ''
+
+  // Allow localhost and internal cluster IPs (10.x.x.x for GKE)
+  const isInternal = clientIP === '127.0.0.1' ||
+    clientIP === '::1' ||
+    clientIP === '::ffff:127.0.0.1' ||
+    clientIP.startsWith('10.') ||
+    clientIP.startsWith('::ffff:10.')
+
+  if (isInternal) {
+    next()
+  } else {
+    res.status(403).json({error: 'Forbidden'})
+  }
+}
+
+// Health check endpoint - internal only
+app.get('/health', internalOnlyMiddleware, (req, res) => {
+  res.status(200).json({status: 'ok', timestamp: new Date().toISOString()})
+})
+
+// Readiness check endpoint - internal only, checks dependencies
+app.get('/ready', internalOnlyMiddleware, async (req, res) => {
+  try {
+    // Check Redis connection
+    await redisClient.ping()
+    res.status(200).json({status: 'ready', timestamp: new Date().toISOString()})
+  } catch (error) {
+    logger.error({message: 'Readiness check failed:', error})
+    res.status(503).json({status: 'not ready', timestamp: new Date().toISOString()})
+  }
+})
 
 // Routes
 app.use('/api/auth', authRoutes)
@@ -101,7 +153,7 @@ Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
 
 initializeAuthClient().catch(error => {
-  console.error('Failed to initialize auth client:', error)
+  logger.error({message: 'Failed to initialize auth client', error})
 })
 
 connectToRabbitMQ()

@@ -2,8 +2,17 @@ import { Request, Response, NextFunction } from 'express'
 import { ErrorMessages } from '../../utils/errorMessages'
 import logger from '../../utils/logger'
 
-export const handleError = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error({message: 'Error - Middleware', err})
+export const handleError = (err: Error, req: Request, res: Response, _next: NextFunction) => {
+  logger.error({
+    message: 'Error - Middleware',
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    requestId: req.id,
+    userId: req.session?.user?.userId,
+    ip: req.ip
+  })
   switch (err.message) {
   case ErrorMessages.TokenNotProvided:
     res.status(401).json({message: err.message})

@@ -5,5 +5,6 @@ declare module 'express-serve-static-core' {
     // Add your custom property here
     userProfile?: UserProfile
     appUrl?: AppUrl
+    id?: string
   }
 }

@@ -446,7 +446,7 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
       ip: ipFromLog
     } = TfLogService.findStatusFromProvisionLog(log, action)
 
-    const updatedVm = await updateVmStatus(vmId, statusFromLog, currentStatus, ipFromLog)
+    const updatedVm = await updateVmStatus(vm, statusFromLog, currentStatus, ipFromLog)
 
     await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status, ipv4Address: updatedVm.ipv4Address})
 
@@ -475,9 +475,13 @@ export const updateVmProvisioningStatusByRestCallback = async (vmId: string, url
 
     const vm = await getVmById(vmId)
 
+    if (!vm) {
+      throw new Error(`VM not found for vmId: ${vmId}`)
+    }
+
     const currentStatus = vm?.status || VmStatus.UNKNOWN
 
-    const updatedVm = await updateVmStatus(vmId, statusFromUrlAction, currentStatus)
+    const updatedVm = await updateVmStatus(vm, statusFromUrlAction, currentStatus)
 
     await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status})
 
@@ -503,32 +507,56 @@ export const logProvisioningStatus = async (vmId: string, action: string, queueN
   await TfLogService.createProvisionLog(vmId, action, queueName, message)
 }
 
-export const updateVmStatus = async (vmId: string, statusFromLog: VmStatus, currentStatus: VmStatus, ipFromLog?: string): Promise<VirtualMachine> => {
+export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus, currentStatus: VmStatus, ipFromLog?: string): Promise<VirtualMachine> => {
+
+  const vmId = vm.vmId
+
   const nextStatus = findNextVmState(currentStatus, statusFromLog)
 
+  // If there's no status change but an IP was provided, persist the IP anyway
   if (nextStatus === currentStatus) {
     logger.debug('No status change', {vmId, currentStatus, nextStatus})
-    throw new Error('No status change')
-  } else {
-    logger.debug('Status change', {vmId, currentStatus, nextStatus})
 
-    const update = {
-      status: nextStatus,
-      ...(ipFromLog !== undefined && {ipv4Address: ipFromLog}),
-      ...(ipFromLog !== undefined && {startedAt: new Date()}),
-      updatedAt: new Date(),
+    if (ipFromLog !== undefined) {
+      const updateData: Prisma.VirtualMachineUpdateInput = {
+        ipv4Address: ipFromLog,
+        updatedAt: new Date(),
+      }
+      if (!vm.startedAt) {
+        updateData.startedAt = new Date()
+      }
+
+      const updatedVm = await prisma.virtualMachine.update({
+        where: {vmId},
+        data: updateData,
+      })
+      logger.debug('Vm IP updated (no status change)', {vmId, ipv4Address: ipFromLog})
+      return updatedVm
     }
 
-    const updatedVm: VirtualMachine = await prisma.virtualMachine.update({
-      where: {
-        vmId: vmId,
-      },
-      data: {...update},
-    })
-
-    logger.debug('Vm status updated', {vmId, nextStatus})
-    return updatedVm
+    throw new Error('No status change')
   }
+
+  // There is a status change
+  logger.debug('Status change', {vmId, currentStatus, nextStatus})
+
+  const update: Prisma.VirtualMachineUpdateInput = {
+    status: nextStatus,
+    updatedAt: new Date(),
+  }
+
+  if (ipFromLog !== undefined) {
+    update.ipv4Address = ipFromLog
+    update.startedAt = new Date()
+  }
+
+  const updatedVm = await prisma.virtualMachine.update({
+    where: {vmId},
+    data: update,
+  })
+
+  logger.debug('Vm status updated', {vmId, nextStatus})
+  return updatedVm
 }
 
 export const sendUserUpdateMessage = async (vmOwner: string, vmId: string, update: any) => {

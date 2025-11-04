@@ -1,3 +1,5 @@
+set -e
+
 docker build -t europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/rest-backend .
 docker push europe-north1-docker.pkg.dev/usit-itf-naic-project/vm-provisioning-docker/rest-backend
 
