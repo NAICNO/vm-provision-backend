@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/consumer.js",
+    "dev": "ts-node consumer.ts"
+  },
   "dependencies": {
     "amqplib": "^0.10.4",
-    "axios": "^1.7.7",
-    "ts-node": "^10.9.2"
+    "axios": "^1.7.7"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.5",
@@ -14,6 +18,7 @@
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
     "eslint": "^8.51.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"

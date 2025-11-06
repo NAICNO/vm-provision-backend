@@ -259,3 +259,5 @@ dist
 # End of https://www.toptal.com/developers/gitignore/api/intellij,node
 # Sentry Config File
 .sentryclirc
+.DS_Store
+rest/.env.production

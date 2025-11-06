@@ -68,6 +68,9 @@ async function startConsumer() {
         case 'DESTROY':
           await handleDestroyAction(channel, msg, payload)
           break
+        case 'REFRESH':
+          await handleRefreshAction(channel, msg, payload)
+          break
         }
       }
     })
@@ -83,7 +86,13 @@ async function handleCreateAction(channel: Channel, msg: Message, payload: VmPro
 }
 
 async function handleDestroyAction(channel: Channel, msg: Message, payload: VmProvisioningRequestPayload) {
+  logger.info(`Handling DESTROY action for VM: ${payload.vm_id}`)
   await ackAndPublish(channel, msg, payload.vm_id, payload.action, payload.provider, 'DESTROY_QUEUED', createTerraformVmDestroyJob)
+}
+
+async function handleRefreshAction(channel: Channel, msg: Message, payload: VmProvisioningRequestPayload) {
+  logger.info(`Handling REFRESH action for VM: ${payload.vm_id}`)
+  await ackAndPublish(channel, msg, payload.vm_id, payload.action, payload.provider, 'IP_CAPTURE_QUEUED', createTerraformVmRefreshJob)
 }
 
 async function ackAndPublish(channel: Channel, msg: Message, vmId: string, action: string, provider: string, statusMessage: string, jobFunction: Function) {
@@ -116,11 +125,18 @@ async function ackAndPublish(channel: Channel, msg: Message, vmId: string, actio
 
 async function createTerraformJob(vmId: string, action: string, provider: string) {
 
-  const jobType = action === 'CREATE' ? 'create' : 'destroy'
+  const jobType = action === 'CREATE' ? 'create' : action === 'DESTROY' ? 'destroy' : 'refresh'
   const jobName = `tf-${jobType}-job-${vmId}`
-  const terraformCommand = action === 'CREATE' ?
-    'terraform init && terraform apply -auto-approve -json | python3 /send_to_rabbitmq.py' :
-    'terraform init && terraform destroy -auto-approve -json | python3 /send_to_rabbitmq.py'
+
+  let terraformCommand: string
+  if (action === 'CREATE') {
+    terraformCommand = 'terraform init && terraform apply -auto-approve -json | python3 /send_to_rabbitmq.py'
+  } else if (action === 'DESTROY') {
+    terraformCommand = 'terraform init && terraform destroy -auto-approve -json | python3 /send_to_rabbitmq.py'
+  } else {
+    // REFRESH: run terraform refresh to update state, then terraform output to emit the IP
+    terraformCommand = 'terraform init && terraform refresh -json | python3 /send_to_rabbitmq.py'
+  }
 
   const kc = new k8s.KubeConfig()
   kc.loadFromDefault()
@@ -172,7 +188,7 @@ async function createTerraformJob(vmId: string, action: string, provider: string
     await k8sApi.createNamespacedJob('default', jobManifest)
     logger.info(`Job created vmId: ${vmId} action: ${action}`)
   } catch (err) {
-    logger.error({message: 'Error creating job vmId: ${vmId} action: ${action}', err})
+    logger.error({message: `Error creating job vmId: ${vmId} action: ${action}`, err})
   }
 }
 
@@ -182,6 +198,10 @@ async function createTerraformVmCreateJob(vmId: string, provider: string) {
 
 async function createTerraformVmDestroyJob(vmId: string, provider: string) {
   await createTerraformJob(vmId, 'DESTROY', provider)
+}
+
+async function createTerraformVmRefreshJob(vmId: string, provider: string) {
+  await createTerraformJob(vmId, 'REFRESH', provider)
 }
 
 startConsumer()
