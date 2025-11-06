@@ -94,3 +94,27 @@ $$
 
     END
 $$;
+
+DO
+$$
+    DECLARE
+        ibm_id uuid;
+    BEGIN
+        INSERT INTO provider (provider_name, description) VALUES ('IBM Cloud', 'IBM Cloud') RETURNING provider_id INTO ibm_id;
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 11 Medium', ibm_id, 2, 4, 120, 'CentOS-Stream-10', 'Power 11  VM for medium workloads', 'power11.medium', '{ "username": "root", "tags": ["simple"]}', true);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 11 Small', ibm_id, 1, 2, 120, 'CentOS-Stream-10', 'Power 11 VM for medium workloads', 'power11.small', '{ "username": "root", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 11 Medium', ibm_id, 2, 4, 120, 'CentOS-Stream-10', 'Power 11  VM for medium workloads', 'power11.medium', '{ "username": "root", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 11 Large', ibm_id, 4, 16, 120, 'CentOS-Stream-10', 'Power 11  VM for large workloads', 'power11.large', '{ "username": "root", "tags": ["advanced"]}', true);
+
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 10 Medium', ibm_id, 2, 4, 120, 'CentOS-Stream-10', 'Power 10  VM for medium workloads', 'power10.medium', '{ "username": "root", "tags": ["simple"]}', true);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 10 Small', ibm_id, 1, 2, 120, 'CentOS-Stream-10', 'Power 10 VM for medium workloads', 'power10.small', '{ "username": "root", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 10 Medium', ibm_id, 2, 4, 120, 'CentOS-Stream-10', 'Power 10  VM for medium workloads', 'power10.medium', '{ "username": "root", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Power 10 Large', ibm_id, 4, 16, 120, 'CentOS-Stream-10', 'Power 10  VM for large workloads', 'power10.large', '{ "username": "root", "tags": ["advanced"]}', true);
+
+
+    END
+$$;

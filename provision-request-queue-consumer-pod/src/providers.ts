@@ -172,6 +172,28 @@ export const getEnvironmentVariables = (vmId: string, action: string, provider: 
         }
       }
     ]
+  case 'ibm-cloud':
+    return [
+      ...commonEnv,
+      {
+        name: 'IC_API_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'ibm-cloud-secret',
+            key: 'apikey'
+          }
+        },
+      },
+      {
+        name: 'TF_VAR_cloud_instance_id',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'ibm-cloud-secret',
+            key: 'cloudinstanceid'
+          }
+        },
+      }
+    ]
   }
 
   return [
@@ -202,6 +224,8 @@ export const getVolumeMounts = (vmId: string, provider: string): V1VolumeMount[]
       }
     ]
   case 'azure':
+    return commonVolumeMounts
+  case 'ibm-cloud':
     return commonVolumeMounts
   default:
     return commonVolumeMounts

@@ -1,0 +1,12 @@
+#cloud-config
+
+runcmd:
+  - bash -lc 'curl -sS -X POST -d "status=boot_started" "${init_boot_call_url}"'
+
+phone_home:
+  url: ${phone_home_url}
+  post:
+    - instance_id
+    - hostname
+    - fqdn
+  tries: 5
