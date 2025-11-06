@@ -33,15 +33,53 @@ import './src/cronJobs'
 const redisClient = createClient({
   url: process.env.REDIS_URL_GCP,
   password: process.env.REDIS_PASSWORD,
+  socket: {
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        logger.error('Redis reconnection failed after 10 attempts')
+        return new Error('Too many reconnection attempts')
+      }
+      // Exponential backoff: 50ms * 2^retries, max 3000ms
+      const delay = Math.min(50 * Math.pow(2, retries), 3000)
+      logger.warn(`Redis reconnecting in ${delay}ms (attempt ${retries + 1})`)
+      return delay
+    },
+    connectTimeout: 10000, // 10 seconds
+    keepAlive: 5000, // Keep connection alive with 5s pings
+  }
 })
 
+// Handle Redis connection events
+redisClient.on('connect', () => {
+  logger.info('Redis client connected')
+})
+
+redisClient.on('ready', () => {
+  logger.info('Redis client ready to use')
+})
+
+redisClient.on('error', (error) => {
+  logger.error({message: 'Redis client error:', error})
+  // Don't crash the app on Redis errors
+})
+
+redisClient.on('reconnecting', () => {
+  logger.warn('Redis client reconnecting...')
+})
+
+redisClient.on('end', () => {
+  logger.warn('Redis connection closed')
+})
+
+// Initial connection
 redisClient
   .connect()
   .then(() => {
     logger.info('Redis connection established')
   })
   .catch(error => {
-    logger.error({message: 'Redis connection error:', error})
+    logger.error({message: 'Redis initial connection error:', error})
+    // Don't crash on initial connection failure - will retry
   })
 
 const redisStore = new RedisStore({
@@ -160,6 +198,60 @@ connectToRabbitMQ()
 
 server.listen(port, () => {
   logger.info(`⚡️[server]: Server is running at http://localhost:${port}`)
+})
+
+// Graceful shutdown handler
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received, starting graceful shutdown...`)
+  
+  try {
+    // Close HTTP server (stop accepting new connections)
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        if (err) {
+          logger.error({message: 'Error closing HTTP server:', error: err})
+          reject(err)
+        } else {
+          logger.info('HTTP server closed')
+          resolve()
+        }
+      })
+    })
+
+    // Close Redis connection
+    if (redisClient.isOpen) {
+      await redisClient.quit()
+      logger.info('Redis connection closed')
+    }
+
+    // Close RabbitMQ connection (if you have a closeRabbitMQ function)
+    // await closeRabbitMQ()
+
+    logger.info('Graceful shutdown completed')
+    process.exit(0)
+  } catch (error) {
+    logger.error({message: 'Error during graceful shutdown:', error})
+    process.exit(1)
+  }
+}
+
+// Handle termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// Handle uncaught exceptions (after all other setup)
+process.on('uncaughtException', (error: Error) => {
+  logger.error({message: 'Uncaught exception:', error})
+  Sentry.captureException(error)
+  // Give Sentry time to send the error, then exit
+  setTimeout(() => {
+    process.exit(1)
+  }, 2000)
+})
+
+process.on('unhandledRejection', (reason: any) => {
+  logger.error({message: 'Unhandled rejection:', error: reason})
+  Sentry.captureException(reason)
 })
 
 
