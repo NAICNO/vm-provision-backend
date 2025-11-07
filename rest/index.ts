@@ -170,12 +170,43 @@ app.get('/health', internalOnlyMiddleware, (req, res) => {
 // Readiness check endpoint - internal only, checks dependencies
 app.get('/ready', internalOnlyMiddleware, async (req, res) => {
   try {
-    // Check Redis connection
-    await redisClient.ping()
+    // Check if Redis client is ready (connected and ready to accept commands)
+    if (!redisClient.isReady) {
+      logger.warn({
+        message: 'Readiness check failed: Redis not ready',
+        isOpen: redisClient.isOpen,
+        isReady: redisClient.isReady,
+        requestId: req.id
+      })
+      return res.status(503).json({
+        status: 'not ready',
+        reason: 'Redis not ready',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    // Check Redis connection with ping (timeout after 2 seconds)
+    const pingPromise = redisClient.ping()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Redis ping timeout')), 2000)
+    )
+    
+    await Promise.race([pingPromise, timeoutPromise])
+    
     res.status(200).json({status: 'ready', timestamp: new Date().toISOString()})
   } catch (error) {
-    logger.error({message: 'Readiness check failed:', error})
-    res.status(503).json({status: 'not ready', timestamp: new Date().toISOString()})
+    logger.error({
+      message: 'Readiness check failed',
+      error,
+      isOpen: redisClient.isOpen,
+      isReady: redisClient.isReady,
+      requestId: req.id
+    })
+    res.status(503).json({
+      status: 'not ready',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    })
   }
 })
 
