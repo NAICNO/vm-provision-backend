@@ -194,6 +194,46 @@ export const getEnvironmentVariables = (vmId: string, action: string, provider: 
         },
       }
     ]
+  case 'nscale':
+    return [
+      ...commonEnv,
+      {
+        name: 'TF_VAR_nscale_service_token',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nscale-secret',
+            key: 'servicetoken'
+          }
+        },
+      },
+      {
+        name: 'TF_VAR_nscale_organization_id',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nscale-secret',
+            key: 'organizationid'
+          }
+        },
+      },
+      {
+        name: 'TF_VAR_nscale_project_id',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nscale-secret',
+            key: 'projectid'
+          }
+        },
+      },
+      {
+        name: 'TF_VAR_region_id',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'nscale-secret',
+            key: 'regionid'
+          }
+        },
+      },
+    ]
   }
 
   return [
@@ -213,6 +253,8 @@ export const getVolumeMounts = (vmId: string, provider: string): V1VolumeMount[]
 
   switch (provider) {
   case 'nrec':
+  case 'nrec-uio':
+  case 'nrec-uib':
     return commonVolumeMounts
   case 'google-cloud':
     return [
@@ -226,6 +268,8 @@ export const getVolumeMounts = (vmId: string, provider: string): V1VolumeMount[]
   case 'azure':
     return commonVolumeMounts
   case 'ibm-cloud':
+    return commonVolumeMounts
+  case 'nscale':
     return commonVolumeMounts
   default:
     return commonVolumeMounts
@@ -245,6 +289,8 @@ export const getVolumes = (provider: string) => {
 
   switch (provider) {
   case 'nrec':
+  case 'nrec-uio':
+  case 'nrec-uib':
     return commonVolumes
   case 'google-cloud':
     return [
@@ -257,6 +303,10 @@ export const getVolumes = (provider: string) => {
       }
     ]
   case 'azure':
+    return commonVolumes
+  case 'ibm-cloud':
+    return commonVolumes
+  case 'nscale':
     return commonVolumes
   default:
     return commonVolumes

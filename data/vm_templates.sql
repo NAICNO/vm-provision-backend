@@ -118,3 +118,22 @@ $$
 
     END
 $$;
+
+
+DO
+$$
+    DECLARE
+        nscale_id uuid;
+    BEGIN
+        INSERT INTO provider (provider_name, description) VALUES ('Nscale', 'NScale') RETURNING provider_id INTO nscale_id;
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Small', nscale_id, 2, 4, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for small workloads', 'g.small', '{ "username": "naic-user", "tags": ["simple"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Medium', nscale_id, 4, 16, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for medium workloads', 'g.4.standard.40s', '{ "username": "naic-user", "tags": ["simple"]}', true);
+
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Small', nscale_id, 2, 4, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for small workloads', 'g.small', '{ "username": "naic-user", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Medium', nscale_id, 4, 16, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for medium workloads', 'g.4.standard.40s', '{ "username": "naic-user", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Large', nscale_id, 16, 32, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for large workloads', 'g.16.standard.40s', '{ "username": "naic-user", "tags": ["advanced"]}', true);
+        INSERT INTO public.vm_template (template_name, provider_id, cpu, ram, storage, os, description, flavor_name, metadata, enabled) VALUES ('Standard Extra Large', nscale_id, 16, 64, 40, 'ubuntu-24.04-amd-mi250-6.4.1', 'AMD-powered VM for extra large workloads', 'g.16.standard', '{ "username": "naic-user", "tags": ["advanced"]}', true);
+
+    END
+$$;

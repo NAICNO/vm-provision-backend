@@ -1,5 +1,5 @@
 # Use the latest version of Terraform
-FROM --platform=linux/amd64 hashicorp/terraform:1.6.6
+FROM --platform=linux/amd64 hashicorp/terraform:1.13.4
 
 # Install Python and pip
 RUN apk add --update python3 py3-pip

@@ -150,6 +150,7 @@ async function createTerraformJob(vmId: string, action: string, provider: string
       name: jobName,
     },
     spec: {
+      ttlSecondsAfterFinished: 3600, // Clean up jobs 1 hour after completion
       template: {
         metadata: {
           labels: {
@@ -185,6 +186,45 @@ async function createTerraformJob(vmId: string, action: string, provider: string
   }
 
   try {
+    // Check if job already exists
+    try {
+      const existingJob = await k8sApi.readNamespacedJob(jobName, 'default')
+      const jobStatus = existingJob.body.status
+
+      // Check if job is still active (running)
+      if (jobStatus?.active && jobStatus.active > 0) {
+        logger.warn({
+          message: `Job ${jobName} is still running. Skipping new job creation.`,
+          vmId,
+          action,
+          activeJobs: jobStatus.active
+        })
+        return // Don't create a new job if one is already running
+      }
+
+      // Job exists but is completed or failed - delete it
+      logger.info({
+        message: `Job ${jobName} exists in completed/failed state. Deleting before creating new one.`,
+        vmId,
+        action,
+        succeeded: jobStatus?.succeeded,
+        failed: jobStatus?.failed
+      })
+
+      await k8sApi.deleteNamespacedJob(jobName, 'default', undefined, undefined, undefined, undefined, undefined, {
+        propagationPolicy: 'Background'
+      })
+
+      // Wait a moment for deletion to propagate
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+    } catch (readErr: any) {
+      // 404 means job doesn't exist - that's fine, we'll create it
+      if (readErr?.response?.statusCode !== 404) {
+        logger.warn({message: `Could not read existing job ${jobName}`, error: readErr})
+      }
+    }
+
     await k8sApi.createNamespacedJob('default', jobManifest)
     logger.info(`Job created vmId: ${vmId} action: ${action}`)
   } catch (err) {

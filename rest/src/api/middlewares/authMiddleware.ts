@@ -5,9 +5,25 @@ import * as AuthService from '../../services/authService'
 import logger from '../../utils/logger'
 
 export async function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
+  // Check if session exists at all
+  if (!req.session) {
+    logger.error({message: 'Session object is undefined', requestId: req.id, url: req.url})
+    return res.status(401).json({error: 'Session not initialized - please log in'})
+  }
+
   if (!req.session.tokenSet) {
     // No tokens present; user is not authenticated
     return res.status(401).json({error: 'Unauthorized'})
+  }
+
+  // Check if user data exists in session
+  if (!req.session.user) {
+    // Token exists but user data is missing - invalid session state
+    logger.error({message: 'Session has token but missing user data', sessionId: req.sessionID})
+    req.session.destroy(() => {
+      return res.status(401).json({error: 'Invalid session - please log in again'})
+    })
+    return
   }
 
   // Rehydrate the TokenSet instance from the stored plain object
@@ -28,6 +44,7 @@ export async function ensureAuthenticated(req: Request, res: Response, next: Nex
       req.session.destroy(() => {
         return res.status(401).json({error: 'Authentication error'})
       })
+      return
     }
   }
 

@@ -114,6 +114,16 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
       }
       break
     }
+    case 'REFRESH': {
+      // For REFRESH action, capture IP if available but don't change status
+      // Status remains as-is, only IP gets updated
+      if (log.outputs?.vm_ip?.value) {
+        ip = log.outputs?.vm_ip?.value
+        status = VmStatus.RUNNING // Keep VM in running state during refresh
+        //TODO: VM might be not in the ruinning state, need to check current state from DB
+      }
+      break
+    }
     }
   }
 

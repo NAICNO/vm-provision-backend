@@ -22,6 +22,7 @@ export const getFolderNameForProvider = (providerName: string) => {
     'aws': 'aws',
     'azure': 'azure',
     'ibm cloud': 'ibm-cloud',
+    'nscale': 'nscale',
   }
 
   return providerMap[providerName.toLowerCase()] || 'nrec'
