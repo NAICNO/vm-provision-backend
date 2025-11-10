@@ -1,0 +1,50 @@
+#cloud-config
+
+bootcmd:
+  - |
+    curl -X POST -d "status=boot_started" ${init_boot_call_url}
+
+# Create naic-user with sudo access and SSH key
+users:
+  - name: ${username}
+    groups: sudo
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${public_key}
+
+write_files:
+  - path: /etc/profile.d/eessi_init.sh
+    content: |
+      EESSI_SILENT=True
+
+      # Save the current PS1 value
+      ORIGINAL_PS1=$PS1
+
+      # Setting up the EESSI environment
+      source /cvmfs/software.eessi.io/versions/2023.06/init/bash
+
+      # Restore the original PS1 value
+      export PS1=$ORIGINAL_PS1
+
+      echo "Thank you for using NAIC Orchestrator - Self Service VM Portal!"
+
+permissions: '0755'
+
+runcmd:
+  - |
+    if [ -f /etc/redhat-release ]; then
+      curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/rhel.sh | bash
+    fi
+  - |
+    if [ -f /etc/debian_version ]; then
+      curl -s https://raw.githubusercontent.com/NAICNO/vm-provision-scripts/master/cloud-init/debian.sh | bash
+    fi
+
+phone_home:
+  url: ${phone_home_url}
+  post:
+    - instance_id
+    - hostname
+    - fqdn
+  tries: 5
