@@ -17,4 +17,48 @@ describe('findStatusFromProvisionLog', () => {
 
     expect(result).toEqual(expected)
   })
+
+  it('should return undefined status and IP for REFRESH action with outputs', () => {
+    const refreshOutputLog = {
+      '@level': 'info',
+      '@message': 'Outputs: 2',
+      '@module': 'terraform.ui',
+      '@timestamp': '2024-01-12T13:19:00.000000Z',
+      'type': 'outputs',
+      'outputs': {
+        'vm_ip': {
+          'value': '192.168.1.100'
+        },
+        'vm_provision_status': {
+          'value': 'PROVISIONING_COMPLETED'
+        }
+      }
+    }
+
+    const log = convertToTFProgressLog(refreshOutputLog)!
+    const action = 'REFRESH'
+    const expected = {status: undefined, ip: '192.168.1.100'}
+
+    const result = findStatusFromProvisionLog(log, action)
+
+    expect(result).toEqual(expected)
+  })
+
+  it('should return undefined status and IP for REFRESH action without outputs', () => {
+    const refreshLog = {
+      '@level': 'info',
+      '@message': 'Refreshing state...',
+      '@module': 'terraform.ui',
+      '@timestamp': '2024-01-12T13:19:00.000000Z',
+      'type': 'refresh_start'
+    }
+
+    const log = convertToTFProgressLog(refreshLog)!
+    const action = 'REFRESH'
+    const expected = {status: undefined, ip: undefined}
+
+    const result = findStatusFromProvisionLog(log, action)
+
+    expect(result).toEqual(expected)
+  })
 })

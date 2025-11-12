@@ -34,10 +34,10 @@ export const convertToTFProgressLog = (obj: any): TFProgressLog | null => {
 }
 
 export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): {
-  status: VmStatus,
+  status: VmStatus | undefined,
   ip: string | undefined
 } => {
-  let status : VmStatus = VmStatus.UNKNOWN
+  let status : VmStatus | undefined = undefined
   let ip: string | undefined = undefined
 
   const logType = log.type
@@ -116,11 +116,10 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
     }
     case 'REFRESH': {
       // For REFRESH action, capture IP if available but don't change status
-      // Status remains as-is, only IP gets updated
+      // Status remains undefined so only IP gets updated
       if (log.outputs?.vm_ip?.value) {
         ip = log.outputs?.vm_ip?.value
-        status = VmStatus.RUNNING // Keep VM in running state during refresh
-        //TODO: VM might be not in the ruinning state, need to check current state from DB
+        // Don't set status - let it remain undefined so VM keeps current state
       }
       break
     }
@@ -134,6 +133,11 @@ export const findStatusFromProvisionLog = (log: TFProgressLog, action: string): 
     if (severity === 'error') {
       status = VmStatus.PROVISIONING_FAILED
     }
+  }
+
+  // If no status was determined and we're not in a REFRESH action, default to UNKNOWN
+  if (status === undefined && action !== 'REFRESH') {
+    status = VmStatus.UNKNOWN
   }
 
   return {status, ip}

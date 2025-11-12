@@ -446,6 +446,7 @@ export const updateVmProvisioningStatusByTfLog = async (vmId: string, action: st
       ip: ipFromLog
     } = TfLogService.findStatusFromProvisionLog(log, action)
 
+    // updateVmStatus now handles both status updates and IP-only updates (when statusFromLog is undefined)
     const updatedVm = await updateVmStatus(vm, statusFromLog, currentStatus, ipFromLog)
 
     await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status, ipv4Address: updatedVm.ipv4Address})
@@ -483,6 +484,18 @@ export const updateVmProvisioningStatusByRestCallback = async (vmId: string, url
 
     const updatedVm = await updateVmStatus(vm, statusFromUrlAction, currentStatus)
 
+    // Update startedAt to current time when VM initialization is complete
+    if (urlAction === UrlAction.NOTIFY_VM_INITIALIZE_COMPLETE) {
+      await prisma.virtualMachine.update({
+        where: {vmId},
+        data: {
+          startedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      })
+      logger.info('VM startedAt timestamp updated to current time on initialization complete', {vmId})
+    }
+
     await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status})
 
     return GenericResponse.success
@@ -507,10 +520,45 @@ export const logProvisioningStatus = async (vmId: string, action: string, queueN
   await TfLogService.createProvisionLog(vmId, action, queueName, message)
 }
 
-export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus, currentStatus: VmStatus, ipFromLog?: string): Promise<VirtualMachine> => {
+/**
+ * Updates VM status and/or IP address
+ * @param vm - The virtual machine to update
+ * @param statusFromLog - Optional status from log. If undefined, only IP will be updated
+ * @param currentStatus - Current VM status
+ * @param ipFromLog - Optional IP address from log
+ * @returns Updated virtual machine
+ */
+export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus | undefined, currentStatus: VmStatus, ipFromLog?: string): Promise<VirtualMachine> => {
 
   const vmId = vm.vmId
 
+  // If statusFromLog is undefined (e.g., REFRESH action), only update IP without changing status
+  if (statusFromLog === undefined) {
+    if (ipFromLog === undefined) {
+      logger.debug('No status or IP to update', {vmId})
+      return vm
+    }
+
+    const updateData: Prisma.VirtualMachineUpdateInput = {
+      ipv4Address: ipFromLog,
+      updatedAt: new Date(),
+    }
+
+    // Set startedAt if not already set and we're getting an IP
+    if (!vm.startedAt) {
+      updateData.startedAt = new Date()
+    }
+
+    const updatedVm = await prisma.virtualMachine.update({
+      where: {vmId},
+      data: updateData,
+    })
+
+    logger.info('VM IP updated without status change', {vmId, ipv4Address: ipFromLog, currentStatus: vm.status})
+    return updatedVm
+  }
+
+  // statusFromLog is defined, check if it results in a status change
   const nextStatus = findNextVmState(currentStatus, statusFromLog)
 
   // If there's no status change but an IP was provided, persist the IP anyway
