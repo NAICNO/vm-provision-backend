@@ -31,13 +31,34 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: redis-password
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1
           resources:
             requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
               memory: "1Gi"
               cpu: "1"
-            limits:
-              memory: "2Gi"
-              cpu: "2"
       volumes:
         - name: redis-data
           persistentVolumeClaim:

@@ -1,8 +1,8 @@
 terraform {
-  required_version = ">=1.0.0, <2.0"
   required_providers {
     ibm = {
       source = "IBM-Cloud/ibm"
+      version = ">= 1.12.0"
     }
   }
 }
@@ -65,7 +65,7 @@ data "ibm_pi_image" "os_image" {
 
 # Create an SSH key resource
 resource "ibm_pi_key" "public_sshkey" {
-  pi_key_name          = "${var.vm_name}-${var.vm_id}-sshkey"
+  pi_key_name          = "${var.vm_id}-sshkey"
   pi_ssh_key           = var.public_key
   pi_cloud_instance_id = var.cloud_instance_id
 }
@@ -76,7 +76,7 @@ resource "ibm_pi_instance" "vm" {
   pi_processors        = local.selected.vcpu
   pi_sys_type          = local.selected.pi_sys_type
   pi_proc_type         = "shared"
-  pi_instance_name     = "${var.vm_name}-${var.vm_id}"
+  pi_instance_name     = var.vm_id
   pi_image_id          = data.ibm_pi_image.os_image.id
   pi_key_pair_name     = ibm_pi_key.public_sshkey.name
   pi_cloud_instance_id = var.cloud_instance_id
