@@ -72,6 +72,9 @@ export const getAllProviders = async () => {
   return prisma.provider.findMany({
     where: {
       enabled: true,
+    },
+    orderBy: {
+      displayOrder: 'asc'
     }
   })
 }

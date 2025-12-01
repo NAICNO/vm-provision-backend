@@ -16,19 +16,19 @@ locals {
   instance_catalog = {
     # tweak these to your needs
     "power11.small" = {
-      vcpu        = 1
-      memory_gb   = 2
+      vcpu        = 2
+      memory_gb   = 4
       pi_sys_type = "s1122"
     }
     "power11.medium" = {
-      vcpu        = 2
-      memory_gb   = 4
+      vcpu        = 4
+      memory_gb   = 16
       proc_type   = "shared"
       pi_sys_type = "s1122"
     }
     "power11.large" = {
-      vcpu        = 4
-      memory_gb   = 16
+      vcpu        = 8
+      memory_gb   = 32
       pi_sys_type = "s1122"
     }
 

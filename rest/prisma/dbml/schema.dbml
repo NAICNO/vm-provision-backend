@@ -84,6 +84,7 @@ Table provider {
   createdAt DateTime [default: `now()`]
   updatedAt DateTime [default: `now()`]
   enabled Boolean [not null, default: true]
+  displayOrder Int [not null, default: 0]
   VmTemplate vm_template [not null]
 }
 
