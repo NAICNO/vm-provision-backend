@@ -29,24 +29,25 @@ import { connectToRabbitMQ } from './src/utils/queueUtils'
 import { initializeAuthClient } from './src/utils/authUtils'
 import './src/cronJobs'
 
-
 const redisClient = createClient({
   url: process.env.REDIS_URL_GCP,
   password: process.env.REDIS_PASSWORD,
   socket: {
     reconnectStrategy: (retries) => {
-      if (retries > 10) {
-        logger.error('Redis reconnection failed after 10 attempts')
+      if (retries > 20) { // Increased from 10 to 20 attempts
+        logger.error('Redis reconnection failed after 20 attempts')
         return new Error('Too many reconnection attempts')
       }
-      // Exponential backoff: 50ms * 2^retries, max 3000ms
-      const delay = Math.min(50 * Math.pow(2, retries), 3000)
+      // Fast initial reconnects (100ms, 200ms, 400ms...), max 5s between attempts
+      const delay = Math.min(100 * Math.pow(2, retries), 5000)
       logger.warn(`Redis reconnecting in ${delay}ms (attempt ${retries + 1})`)
       return delay
     },
-    connectTimeout: 10000, // 10 seconds
-    keepAlive: 5000, // Keep connection alive with 5s pings
-  }
+    connectTimeout: 15000, // Increased from 10s to 15s for slower networks
+    keepAlive: 30000, // Increased from 5s to 30s to match Redis server tcp-keepalive
+  },
+  // Keep offline queue enabled so commands during reconnection are queued
+  disableOfflineQueue: false,
 })
 
 // Handle Redis connection events
@@ -170,30 +171,16 @@ app.get('/health', internalOnlyMiddleware, (req, res) => {
 // Readiness check endpoint - internal only, checks dependencies
 app.get('/ready', internalOnlyMiddleware, async (req, res) => {
   try {
-    // Check if Redis client is ready (connected and ready to accept commands)
-    if (!redisClient.isReady) {
-      logger.warn({
-        message: 'Readiness check failed: Redis not ready',
-        isOpen: redisClient.isOpen,
-        isReady: redisClient.isReady,
-        requestId: req.id
-      })
-      return res.status(503).json({
-        status: 'not ready',
-        reason: 'Redis not ready',
-        timestamp: new Date().toISOString()
-      })
-    }
-
-    // Check Redis connection with ping (timeout after 2 seconds)
+    // Instead of checking isReady flag, try to ping Redis directly
+    // This allows for brief reconnection periods without failing readiness
     const pingPromise = redisClient.ping()
-    const timeoutPromise = new Promise((_, reject) => 
+    const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Redis ping timeout')), 2000)
     )
-    
+
     await Promise.race([pingPromise, timeoutPromise])
-    
-    res.status(200).json({status: 'ready', timestamp: new Date().toISOString()})
+
+    res.status(200).json({ status: 'ready', timestamp: new Date().toISOString() })
   } catch (error) {
     logger.error({
       message: 'Readiness check failed',
@@ -234,7 +221,7 @@ server.listen(port, () => {
 // Graceful shutdown handler
 const gracefulShutdown = async (signal: string) => {
   logger.info(`${signal} received, starting graceful shutdown...`)
-  
+
   try {
     // Close HTTP server (stop accepting new connections)
     await new Promise<void>((resolve, reject) => {

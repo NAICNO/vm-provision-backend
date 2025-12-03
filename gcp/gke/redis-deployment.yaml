@@ -23,7 +23,11 @@ spec:
           command: [
             "redis-server",
             "--requirepass", "$(REDIS_PASSWORD)",
-            "--appendonly", "yes"
+            "--appendonly", "yes",
+            "--tcp-keepalive", "60",
+            "--timeout", "300",
+            "--tcp-backlog", "511",
+            "--maxclients", "10000"
           ]
           env:
             - name: REDIS_PASSWORD
@@ -54,11 +58,22 @@ spec:
             successThreshold: 1
           resources:
             requests:
-              memory: "512Mi"
+              memory: "768Mi"  # Increased for better performance
               cpu: "500m"
             limits:
-              memory: "1Gi"
+              memory: "1.5Gi"  # More headroom for peak loads
               cpu: "1"
+          # Add startup probe to prevent premature readiness during recovery
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a $REDIS_PASSWORD ping | grep PONG
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            timeoutSeconds: 3
+            failureThreshold: 30  # 60 seconds total startup time allowed
       volumes:
         - name: redis-data
           persistentVolumeClaim:
