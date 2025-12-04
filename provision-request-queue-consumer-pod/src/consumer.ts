@@ -188,8 +188,8 @@ async function createTerraformJob(vmId: string, action: string, provider: string
   try {
     // Check if job already exists
     try {
-      const existingJob = await k8sApi.readNamespacedJob(jobName, 'default')
-      const jobStatus = existingJob.body.status
+      const existingJob = await k8sApi.readNamespacedJob({ name: jobName, namespace: 'default' })
+      const jobStatus = existingJob.status
 
       // Check if job is still active (running)
       if (jobStatus?.active && jobStatus.active > 0) {
@@ -211,7 +211,9 @@ async function createTerraformJob(vmId: string, action: string, provider: string
         failed: jobStatus?.failed
       })
 
-      await k8sApi.deleteNamespacedJob(jobName, 'default', undefined, undefined, undefined, undefined, undefined, {
+      await k8sApi.deleteNamespacedJob({
+        name: jobName,
+        namespace: 'default',
         propagationPolicy: 'Background'
       })
 
@@ -225,7 +227,7 @@ async function createTerraformJob(vmId: string, action: string, provider: string
       }
     }
 
-    await k8sApi.createNamespacedJob('default', jobManifest)
+    await k8sApi.createNamespacedJob({ namespace: 'default', body: jobManifest })
     logger.info(`Job created vmId: ${vmId} action: ${action}`)
   } catch (err) {
     logger.error({message: `Error creating job vmId: ${vmId} action: ${action}`, err})
