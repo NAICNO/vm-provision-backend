@@ -38,6 +38,9 @@ cd ../gcp/gke || exit 1
 echo "🚀 Deploying version ${VERSION_TAG} to DEV..."
 kubectl apply -f rest-backend-deployment.yaml
 
+# Scale to 1 replica for dev
+kubectl scale deployment/rest-backend-deployment --replicas=1
+
 # Update the image to the specific version (triggers rolling update)
 kubectl set image deployment/rest-backend-deployment \
   rest-backend="${IMAGE_VERSIONED}"

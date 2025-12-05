@@ -50,7 +50,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
 
     await UserService.logUserActivity(userProfile.userId, UserActivityType.USER_LOGIN_SUCCESS)
-    logger.info(`User ${userProfile.userId} logged in`)
+    logger.info({message: 'User logged in', userId: userProfile.userId})
   } catch (error) {
     console.log('Auth function Error:', error)
     await UserService.logUserActivity('user-unknown', UserActivityType.USER_LOGIN_FAILED, '', {error: error})
@@ -79,7 +79,7 @@ export const getAuthStatus = async (req: Request, res: Response) => {
           user: req.session.user,
         })
       } catch (error) { // Refresh failed
-        logger.error('Error refreshing tokens', error)
+        logger.error({message: 'Error refreshing tokens', error})
         res.json({
           isAuthenticated: false,
           user: null,

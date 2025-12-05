@@ -25,7 +25,7 @@ spec:
             "--requirepass", "$(REDIS_PASSWORD)",
             "--appendonly", "yes",
             "--tcp-keepalive", "60",
-            "--timeout", "300",
+            "--timeout", "0",
             "--tcp-backlog", "511",
             "--maxclients", "10000"
           ]
@@ -44,7 +44,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 3
+            failureThreshold: 6
           readinessProbe:
             exec:
               command:
@@ -58,12 +58,11 @@ spec:
             successThreshold: 1
           resources:
             requests:
-              memory: "768Mi"  # Increased for better performance
+              memory: "768Mi"
               cpu: "500m"
             limits:
-              memory: "1.5Gi"  # More headroom for peak loads
+              memory: "1.5Gi"
               cpu: "1"
-          # Add startup probe to prevent premature readiness during recovery
           startupProbe:
             exec:
               command:
@@ -73,7 +72,7 @@ spec:
             initialDelaySeconds: 0
             periodSeconds: 2
             timeoutSeconds: 3
-            failureThreshold: 30  # 60 seconds total startup time allowed
+            failureThreshold: 30
       volumes:
         - name: redis-data
           persistentVolumeClaim:

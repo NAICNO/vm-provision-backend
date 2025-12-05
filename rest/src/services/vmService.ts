@@ -496,7 +496,7 @@ export const updateVmProvisioningStatusByRestCallback = async (vmId: string, url
           updatedAt: new Date(),
         },
       })
-      logger.info('VM startedAt timestamp updated to current time on initialization complete', {vmId})
+      logger.info({message: 'VM startedAt timestamp updated on initialization complete', vmId})
     }
 
     await sendUserUpdateMessage(updatedVm.userId, vmId, {status: updatedVm.status})
@@ -538,7 +538,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
   // If statusFromLog is undefined (e.g., REFRESH action), only update IP without changing status
   if (statusFromLog === undefined) {
     if (ipFromLog === undefined) {
-      logger.debug('No status or IP to update', {vmId})
+      logger.debug({message: 'No status or IP to update', vmId})
       return vm
     }
 
@@ -557,7 +557,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
       data: updateData,
     })
 
-    logger.info('VM IP updated without status change', {vmId, ipv4Address: ipFromLog, currentStatus: vm.status})
+    logger.info({message: 'VM IP updated without status change', vmId, ipv4Address: ipFromLog, currentStatus: vm.status})
     return updatedVm
   }
 
@@ -566,7 +566,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
 
   // If there's no status change but an IP was provided, persist the IP anyway
   if (nextStatus === currentStatus) {
-    logger.debug('No status change', {vmId, currentStatus, nextStatus})
+    logger.debug({message: 'No status change', vmId, currentStatus, nextStatus})
 
     if (ipFromLog !== undefined) {
       const updateData: Prisma.VirtualMachineUpdateInput = {
@@ -581,7 +581,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
         where: {vmId},
         data: updateData,
       })
-      logger.debug('Vm IP updated (no status change)', {vmId, ipv4Address: ipFromLog})
+      logger.debug({message: 'VM IP updated (no status change)', vmId, ipv4Address: ipFromLog})
       return updatedVm
     }
 
@@ -589,7 +589,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
   }
 
   // There is a status change
-  logger.debug('Status change', {vmId, currentStatus, nextStatus})
+  logger.debug({message: 'Status change detected', vmId, currentStatus, nextStatus})
 
   const update: Prisma.VirtualMachineUpdateInput = {
     status: nextStatus,
@@ -606,7 +606,7 @@ export const updateVmStatus = async (vm: VirtualMachine, statusFromLog: VmStatus
     data: update,
   })
 
-  logger.debug('Vm status updated', {vmId, nextStatus})
+  logger.debug({message: 'VM status updated', vmId, newStatus: nextStatus})
   return updatedVm
 }
 

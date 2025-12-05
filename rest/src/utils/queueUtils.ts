@@ -10,26 +10,26 @@ const rabbitMqUrl = process.env.RABBITMQ_URL_GCP || 'amqp://localhost:5672'
 
 export async function connectToRabbitMQ() {
   try {
-    logger.info('Connecting to RabbitMQ...')
+    logger.info({message: 'Connecting to RabbitMQ'})
     connection = await amqp.connect(rabbitMqUrl)
-    logger.info('Connected to RabbitMQ!')
+    logger.info({message: 'Connected to RabbitMQ'})
 
     channel = await connection.createConfirmChannel()
     isChannelOpen = true
 
     connection.on('close', () => {
       isChannelOpen = false
-      logger.error('Connection to RabbitMQ closed! Reconnecting...')
+      logger.warn({message: 'Connection to RabbitMQ closed, reconnecting...'})
       reconnect()
     })
 
     connection.on('error', (err) => {
-      logger.error('RabbitMQ Connection Error:', err)
+      logger.error({message: 'RabbitMQ connection error', error: err})
     })
 
     await MessageQueueService.publishAllPendingMessages()
   } catch (error) {
-    logger.error('Failed to connect to RabbitMQ:', error)
+    logger.error({message: 'Failed to connect to RabbitMQ', error})
     Sentry.captureException(error, {contexts: {rabbitmq: {message: 'Failed to connect to RabbitMQ'}}})
   }
 }

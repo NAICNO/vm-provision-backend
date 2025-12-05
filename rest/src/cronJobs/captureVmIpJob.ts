@@ -19,7 +19,7 @@ import { getFolderNameForProvider } from '../utils/utils'
  * Runs every 30 seconds to check for VMs that need IP capture.
  */
 const captureVmIpJob = new Cron('*/30 * * * * *', async () => {
-  logger.debug('[Cron] Running captureVmIpJob every 30 seconds')
+  logger.debug({message: '[Cron] Running captureVmIpJob every 30 seconds'})
 
   try {
     // Find VMs that are in PROVISIONING_COMPLETED or INITIALIZING or RUNNING status
@@ -45,20 +45,18 @@ const captureVmIpJob = new Cron('*/30 * * * * *', async () => {
     })
 
     if (vmsWithoutIp.length > 0) {
-      logger.info(
-        `[Cron] Found ${vmsWithoutIp.length} VMs without IP addresses, triggering IP capture jobs`
-      )
+      logger.info({message: '[Cron] Found VMs without IP addresses. Triggering IP capture jobs', count: vmsWithoutIp.length})
     }
 
     for (const vm of vmsWithoutIp) {
       try {
-        logger.info(`[Cron] Triggering IP capture job for VM: ${vm.vmId}`)
+        logger.info({message: '[Cron] Triggering IP capture job', vmId: vm.vmId})
 
         // Trigger a Terraform refresh job that will output the IP
         // Provider is needed for cloud credentials even though files already exist
         await triggerTerraformRefreshJob(vm.vmId, vm.userId, vm.vmTemplate.provider.providerName)
 
-        logger.info(`[Cron] IP capture job queued for VM: ${vm.vmId}`)
+        logger.info({message: '[Cron] IP capture job queued', vmId: vm.vmId})
       } catch (error) {
         logger.error({
           message: `[Cron] Error triggering IP capture job for VM: ${vm.vmId}`,

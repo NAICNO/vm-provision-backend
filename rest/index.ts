@@ -34,52 +34,53 @@ const redisClient = createClient({
   password: process.env.REDIS_PASSWORD,
   socket: {
     reconnectStrategy: (retries) => {
-      if (retries > 20) { // Increased from 10 to 20 attempts
-        logger.error('Redis reconnection failed after 20 attempts')
-        return new Error('Too many reconnection attempts')
+      // Never give up reconnecting - just increase delay up to 30 seconds
+      // This prevents pods from getting stuck in a permanently disconnected state
+      const delay = Math.min(100 * Math.pow(2, retries), 30000)
+
+      if (retries > 20) {
+        // After 20 attempts, log at error level but keep trying every 30s
+        logger.error({message: 'Redis reconnection still failing', attempt: retries + 1, nextRetryMs: delay})
+      } else {
+        logger.warn({message: 'Redis reconnecting', attempt: retries + 1, nextRetryMs: delay})
       }
-      // Fast initial reconnects (100ms, 200ms, 400ms...), max 5s between attempts
-      const delay = Math.min(100 * Math.pow(2, retries), 5000)
-      logger.warn(`Redis reconnecting in ${delay}ms (attempt ${retries + 1})`)
       return delay
     },
-    connectTimeout: 15000, // Increased from 10s to 15s for slower networks
-    keepAlive: 30000, // Increased from 5s to 30s to match Redis server tcp-keepalive
+    connectTimeout: 15000,
+    keepAlive: 30000,
   },
-  // Keep offline queue enabled so commands during reconnection are queued
   disableOfflineQueue: false,
 })
 
 // Handle Redis connection events
 redisClient.on('connect', () => {
-  logger.info('Redis client connected')
+  logger.info({message: 'Redis client connected'})
 })
 
 redisClient.on('ready', () => {
-  logger.info('Redis client ready to use')
+  logger.info({message: 'Redis client ready'})
 })
 
 redisClient.on('error', (error) => {
-  logger.error({message: 'Redis client error:', error})
-  // Don't crash the app on Redis errors
+  logger.error({message: 'Redis client error', error})
 })
 
 redisClient.on('reconnecting', () => {
-  logger.warn('Redis client reconnecting...')
+  logger.warn({message: 'Redis client reconnecting'})
 })
 
 redisClient.on('end', () => {
-  logger.warn('Redis connection closed')
+  logger.warn({message: 'Redis connection closed'})
 })
 
 // Initial connection
 redisClient
   .connect()
   .then(() => {
-    logger.info('Redis connection established')
+    logger.info({message: 'Redis connection established'})
   })
   .catch(error => {
-    logger.error({message: 'Redis initial connection error:', error})
+    logger.error({message: 'Redis initial connection error', error})
     // Don't crash on initial connection failure - will retry
   })
 
@@ -171,8 +172,24 @@ app.get('/health', internalOnlyMiddleware, (req, res) => {
 // Readiness check endpoint - internal only, checks dependencies
 app.get('/ready', internalOnlyMiddleware, async (req, res) => {
   try {
-    // Instead of checking isReady flag, try to ping Redis directly
-    // This allows for brief reconnection periods without failing readiness
+    // Check if Redis client is connected before attempting ping
+    if (!redisClient.isOpen) {
+      // Redis is not connected - check if it's still in initial connection phase
+      // or if reconnection is in progress (give it a chance to recover)
+      logger.warn({
+        message: 'Readiness check: Redis not connected',
+        isOpen: redisClient.isOpen,
+        isReady: redisClient.isReady,
+        requestId: req.id
+      })
+      return res.status(503).json({
+        status: 'not ready',
+        error: 'Redis not connected',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    // Redis is open, try to ping with timeout
     const pingPromise = redisClient.ping()
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Redis ping timeout')), 2000)
@@ -183,8 +200,8 @@ app.get('/ready', internalOnlyMiddleware, async (req, res) => {
     res.status(200).json({ status: 'ready', timestamp: new Date().toISOString() })
   } catch (error) {
     logger.error({
-      message: 'Readiness check failed',
-      error,
+      message: 'Readiness check failed: Redis not ready',
+      error: error instanceof Error ? error.message : 'Unknown error',
       isOpen: redisClient.isOpen,
       isReady: redisClient.isReady,
       requestId: req.id
@@ -215,12 +232,12 @@ initializeAuthClient().catch(error => {
 connectToRabbitMQ()
 
 server.listen(port, () => {
-  logger.info(`⚡️[server]: Server is running at http://localhost:${port}`)
+  logger.info({message: 'Server started', port})
 })
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal: string) => {
-  logger.info(`${signal} received, starting graceful shutdown...`)
+  logger.info({message: 'Graceful shutdown initiated', signal})
 
   try {
     // Close HTTP server (stop accepting new connections)
@@ -230,7 +247,7 @@ const gracefulShutdown = async (signal: string) => {
           logger.error({message: 'Error closing HTTP server:', error: err})
           reject(err)
         } else {
-          logger.info('HTTP server closed')
+          logger.info({message: 'HTTP server closed'})
           resolve()
         }
       })
@@ -239,13 +256,13 @@ const gracefulShutdown = async (signal: string) => {
     // Close Redis connection
     if (redisClient.isOpen) {
       await redisClient.quit()
-      logger.info('Redis connection closed')
+      logger.info({message: 'Redis connection closed'})
     }
 
     // Close RabbitMQ connection (if you have a closeRabbitMQ function)
     // await closeRabbitMQ()
 
-    logger.info('Graceful shutdown completed')
+    logger.info({message: 'Graceful shutdown completed'})
     process.exit(0)
   } catch (error) {
     logger.error({message: 'Error during graceful shutdown:', error})

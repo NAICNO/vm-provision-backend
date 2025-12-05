@@ -14,7 +14,7 @@ import logger from '../utils/logger'
  */
 const publishPendingMessagesJob = new Cron('*/5 * * * * *', async () => {
   try {
-    logger.debug('[Cron] Publishing pending messages to RabbitMQ')
+    logger.debug({message: '[Cron] Publishing pending messages to RabbitMQ'})
     await MessageQueueService.publishAllPendingMessages()
   } catch (error) {
     logger.error({

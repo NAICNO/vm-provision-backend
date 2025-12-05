@@ -8,7 +8,7 @@ import logger from '../utils/logger'
 //* */5 * * * * // every 5 minutes
 const deleteUserProfileJob = new Cron('*/30 * * * * *', async () => {
 
-  logger.debug('[Cron] Running deleteUserProfileJob every 30 seconds')
+  logger.debug({message: '[Cron] Running deleteUserProfileJob'})
   // Find all the users who have PENDING_DELETION status
   const users = await UserService.findUsersByStatus(UserProfileStatus.PENDING_DELETION)
 
