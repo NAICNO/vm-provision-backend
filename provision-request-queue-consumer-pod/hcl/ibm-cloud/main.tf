@@ -53,10 +53,6 @@ locals {
   selected = lookup(local.instance_catalog, var.flavor_name, null)
 }
 
-data "ibm_pi_public_network" "public_network" {
-  pi_cloud_instance_id = var.cloud_instance_id
-}
-
 # Using CentOS 9 image for the instance
 data "ibm_pi_image" "os_image" {
   pi_cloud_instance_id = var.cloud_instance_id
@@ -68,6 +64,13 @@ resource "ibm_pi_key" "public_sshkey" {
   pi_key_name          = "${var.vm_id}-sshkey"
   pi_ssh_key           = var.public_key
   pi_cloud_instance_id = var.cloud_instance_id
+}
+
+resource "ibm_pi_network" "public_network" {
+  pi_cloud_instance_id = var.cloud_instance_id
+  pi_network_name      = var.vm_id
+  pi_network_type      = "pub-vlan"
+  pi_dns               = ["9.9.9.9"]
 }
 
 # Create a Power Virtual Server instance
@@ -84,7 +87,7 @@ resource "ibm_pi_instance" "vm" {
   pi_health_status     = "WARNING"
 
   pi_network {
-    network_id = data.ibm_pi_public_network.public_network.id
+    network_id = ibm_pi_network.public_network.network_id
   }
   pi_user_data = templatefile("${path.module}/cloud-init-ibm.yaml", {
     phone_home_url = var.phone_home_url
