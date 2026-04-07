@@ -1,8 +1,3 @@
-Build Docker image
-```
-docker build -t <your-docker-registry>/provision-log-queue-consumer .
-```
-Push Docker image to Google Cloud Registry
-```
-docker push <your-docker-registry>/provision-log-queue-consumer
-```
+# Log Queue Consumer
+
+Consumes Terraform progress logs from RabbitMQ (`vm_provisioning_progress`) and forwards them to the REST API for processing. See the [root README](../README.md) for architecture details.

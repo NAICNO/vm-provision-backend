@@ -6,12 +6,16 @@ Backend services for the NAIC VM Provisioning platform. Orchestrates Terraform-b
 
 ## Architecture
 
-```
-User Request --> REST API --> RabbitMQ --> Request Consumer --> K8s Terraform Job
-                                                                    |
-                                          RabbitMQ <-- Terraform logs/outputs
-                                              |
-                                      Log Consumer --> REST API --> DB + Socket.IO
+```mermaid
+flowchart LR
+    User([User Request]) --> REST[REST API]
+    REST --> RMQ[(RabbitMQ)]
+    RMQ --> RC[Request Consumer]
+    RC --> TF[K8s Terraform Job]
+    TF --> RMQ2[(RabbitMQ)]
+    RMQ2 --> LC[Log Consumer]
+    LC --> REST2[REST API]
+    REST2 --> DB[(DB + Socket.IO)]
 ```
 
 ### Components
@@ -19,71 +23,49 @@ User Request --> REST API --> RabbitMQ --> Request Consumer --> K8s Terraform Jo
 | Component | Description |
 |-----------|-------------|
 | `rest/` | Express.js REST API with Socket.IO, Prisma ORM, Redis sessions |
-| `provision-request-queue-consumer-pod/` | RabbitMQ consumer that spawns Kubernetes Terraform jobs |
-| `provision-log-queue-consumer-pod/` | Processes Terraform JSON logs and updates the REST API |
-| `terraform-runner-job/` | Kubernetes Job container that runs Terraform and pipes output to RabbitMQ |
+| `provision-request-queue-consumer-pod/` | Consumes provisioning requests from RabbitMQ, prepares Terraform configs, creates K8s jobs |
+| `provision-log-queue-consumer-pod/` | Consumes Terraform JSON logs from RabbitMQ and forwards to the REST API |
+| `terraform-runner-job/` | K8s Job container (Terraform + Python) that runs Terraform and pipes output to RabbitMQ |
+| `gcp/gke/` | Kubernetes deployment manifests |
 
-## Prerequisites
+### Request Consumer
 
-- Node.js 20+
-- Yarn
-- Docker
-- PostgreSQL
-- RabbitMQ
-- Redis
+Consumes from the `vm_provisioning_requests` queue. For each request it copies provider-specific HCL templates and cloud-init files to a shared NFS volume, generates `terraform.tfvars`, and creates a Kubernetes job running the Terraform runner image.
 
-## Getting Started
+**Supported actions:**
 
-1. **Clone the repository:**
+| Action | Terraform Command |
+|--------|-------------------|
+| `CREATE` | `terraform init && terraform apply -auto-approve -json` |
+| `DESTROY` | `terraform init && terraform destroy -auto-approve -json` |
+| `REFRESH` | `terraform init && terraform refresh -json` |
 
-   ```bash
-   git clone https://github.com/NAICNO/vm-provision-backend.git
-   cd vm-provision-backend
-   ```
+### Supported Providers
 
-2. **Set up environment variables:**
+| Provider | HCL Directory | Required Credentials |
+|----------|---------------|---------------------|
+| NREC | `hcl/nrec/` | `OS_USERNAME`, `OS_PASSWORD`, `OS_PROJECT_NAME` |
+| NREC UiO | `hcl/nrec-uio/` | Same as NREC (different project) |
+| NREC UiB | `hcl/nrec-uib/` | Same as NREC (different project) |
+| Google Cloud | `hcl/google-cloud/` | `GOOGLE_APPLICATION_CREDENTIALS` |
+| Azure | `hcl/azure/` | `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` |
+| IBM Cloud | `hcl/ibm-cloud/` | `IC_API_KEY`, `TF_VAR_cloud_instance_id` |
+| Nscale | `hcl/nscale/` | `TF_VAR_nscale_service_token`, `organization_id`, `project_id`, `region_id` |
 
-   ```bash
-   cp rest/.env.example rest/.env.development
-   ```
+Provider credentials are mounted as Kubernetes secrets into Terraform runner jobs. See `provision-request-queue-consumer-pod/src/providers.ts` for the full mapping.
 
-   Edit `rest/.env.development` with your configuration values.
+**Adding a new provider:**
 
-3. **Start Redis locally with Docker:**
+1. Create a directory under `provision-request-queue-consumer-pod/hcl/` with `main.tf` and `variables.tf`
+2. Define required Terraform outputs: `vm_ip` and `vm_provision_status`
+3. Add a cloud-init template to `hcl/cloud-init/` if the default doesn't work
+4. Register the provider in `src/providers.ts` with its env vars and secrets
+5. Add provider and VM templates to the database via `data/vm_templates.sql`
 
-   ```bash
-   docker run -d --name vm-provision-redis -p 6379:6379 redis:7-alpine redis-server --requirepass devpassword
-   ```
+## Documentation
 
-4. **Install dependencies and run:**
-
-   ```bash
-   cd rest
-   yarn install
-   npx prisma generate
-   yarn dev
-   ```
-
-The API will be available at `http://localhost:3000`.
-
-## Building & Deploying
-
-Each service has its own Dockerfile. A template build script is provided at [`build-push.sh.example`](build-push.sh.example) — copy it into the service directory, update the configuration variables, and run it to build, push, and deploy to Kubernetes.
-
-```bash
-cp build-push.sh.example rest/build-push.sh
-# Edit rest/build-push.sh with your registry, context, and deployment name
-cd rest && ./build-push.sh
-```
-
-Before deploying, update the container image references and `TERRAFORM_RUNNER_IMAGE` env var in the Kubernetes manifests under `gcp/gke/` to point to your Docker registry. See [`gcp/gke/README.md`](gcp/gke/README.md) for manifest details and deployment order.
-
-## Testing
-
-```bash
-cd rest
-yarn test
-```
+- [Local Development](docs/DEVELOPMENT.md) — setup, environment variables, testing
+- [Deployment](docs/DEPLOYMENT.md) — Docker builds, Kubernetes manifests, deployment order
 
 ## License
 

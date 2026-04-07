@@ -1,8 +1,3 @@
-Build Docker image
-```
-docker build -t <your-docker-registry>/request-queue-consumer .
-```
-Push Docker image to Google Cloud Registry
-```
-docker push <your-docker-registry>/request-queue-consumer
-```
+# Request Queue Consumer
+
+Consumes VM provisioning requests from RabbitMQ (`vm_provisioning_requests`), prepares Terraform configurations, and creates Kubernetes jobs. See the [root README](../README.md) for architecture and provider details.
