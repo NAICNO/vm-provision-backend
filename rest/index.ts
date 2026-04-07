@@ -1,4 +1,3 @@
-import './instrument'
 import express, { Express } from 'express'
 import * as http from 'http'
 import dotenv from 'dotenv'
@@ -9,7 +8,6 @@ const envFile = `.env.${env}`
 dotenv.config({path: envFile})
 
 import cors from 'cors'
-import * as Sentry from '@sentry/node'
 import session from 'express-session'
 import RedisStore from 'connect-redis'
 import { createClient } from 'redis'
@@ -222,7 +220,6 @@ app.use('/api/message', messageRoutes)
 app.use('/go', appUrlRoute)
 
 // Error handlers
-Sentry.setupExpressErrorHandler(app)
 app.use(handleError)
 
 initializeAuthClient().catch(error => {
@@ -277,16 +274,11 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 // Handle uncaught exceptions (after all other setup)
 process.on('uncaughtException', (error: Error) => {
   logger.error({message: 'Uncaught exception:', error})
-  Sentry.captureException(error)
-  // Give Sentry time to send the error, then exit
-  setTimeout(() => {
-    process.exit(1)
-  }, 2000)
+  process.exit(1)
 })
 
 process.on('unhandledRejection', (reason: any) => {
   logger.error({message: 'Unhandled rejection:', error: reason})
-  Sentry.captureException(reason)
 })
 
 

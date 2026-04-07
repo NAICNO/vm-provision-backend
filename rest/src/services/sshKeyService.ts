@@ -4,7 +4,6 @@ import sshpk from 'sshpk'
 import { prisma } from '../models/prismaClient'
 import { ErrorMessages } from '../utils/errorMessages'
 import { VmPublicKey } from '@prisma/client'
-import * as Sentry from '@sentry/node'
 
 export const getAllUserSshKeys = async (userId: string | undefined) => {
   return prisma.vmPublicKey.findMany({
@@ -43,16 +42,7 @@ export const findPublicKey = async (publicKeyId: string): Promise<VmPublicKey> =
       },
     })
   } catch (e) {
-    const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          sshKeyId: publicKeyId,
-          message: 'Public key not found'
-        }
-      }
-    })
-    throw error
+    throw new Error(ErrorMessages.InternalServerError)
   }
 }
 

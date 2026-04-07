@@ -257,7 +257,11 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,node
-# Sentry Config File
-.sentryclirc
 .DS_Store
-rest/.env.production
+# Environment files
+.env*
+!.env.example
+
+# Build and deploy scripts (contain environment-specific config)
+**/build-push*.sh
+!build-push.sh.example

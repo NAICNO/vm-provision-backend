@@ -4,19 +4,16 @@
   "description": "Backend - VM Provisioning",
   "main": "index.ts",
   "scripts": {
-    "build": "npx tsc && yarn sentry:sourcemaps",
+    "build": "npx tsc",
     "start": "node dist/index.js",
     "dev": "concurrently \"npx tsc -w\" \"nodemon dist/index.js\"",
     "prod": "NODE_ENV=production node dist/index.js",
-    "test": "jest",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org uio-naic --project vm-backend ./dist && sentry-cli sourcemaps upload --org uio-naic --project vm-backend ./dist"
+    "test": "jest"
   },
   "author": "Ashen Wijesiri",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@prisma/client": "6.17.1",
-    "@sentry/node": "^10.10.0",
-    "@sentry/profiling-node": "^10.10.0",
     "amqplib": "^0.10.4",
     "connect-redis": "^7.1.1",
     "cors": "^2.8.5",
@@ -35,7 +32,6 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@sentry/cli": "^2.53.0",
     "@types/amqplib": "^0.10.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",

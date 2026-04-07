@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# =============================================================================
+# Build, push, and deploy a service to Kubernetes
+#
+# Usage:
+#   1. Copy this file into the service directory you want to deploy:
+#      cp build-push.sh.example rest/build-push.sh
+#
+#   2. Update the configuration variables below for your environment.
+#
+#   3. Run from the service directory:
+#      cd rest && ./build-push.sh
+# =============================================================================
+
+# Configuration — update these for your environment
+REGISTRY="<your-docker-registry>"          # e.g. europe-north1-docker.pkg.dev/my-project/my-repo
+IMAGE_NAME="<service-name>"                # e.g. rest-backend, provision-log-queue-consumer
+KUBE_CONTEXT="<your-kubectl-context>"      # e.g. my-cluster-prod
+DEPLOYMENT_NAME="<k8s-deployment-name>"    # e.g. rest-backend-deployment
+DEPLOYMENT_YAML="<deployment-yaml-file>"   # e.g. rest-backend-deployment.yaml
+
+# Generate version tag (git commit SHA + timestamp)
+GIT_SHA=$(git rev-parse --short HEAD)
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+VERSION_TAG="${GIT_SHA}-${TIMESTAMP}"
+
+# Image tags
+IMAGE_VERSIONED="${REGISTRY}/${IMAGE_NAME}:${VERSION_TAG}"
+IMAGE_LATEST="${REGISTRY}/${IMAGE_NAME}:latest"
+
+echo "Building version: ${VERSION_TAG}"
+
+# Build with both tags
+docker build \
+  -t "${IMAGE_VERSIONED}" \
+  -t "${IMAGE_LATEST}" \
+  .
+
+# Push both tags
+echo "Pushing images..."
+docker push "${IMAGE_VERSIONED}"
+docker push "${IMAGE_LATEST}"
+
+# Switch kubectl context
+kubectl config use-context "${KUBE_CONTEXT}"
+
+# Apply the deployment configuration
+cd ../gcp/gke || exit 1
+echo "Deploying version ${VERSION_TAG}..."
+kubectl apply -f "${DEPLOYMENT_YAML}"
+
+# Update the image to the specific version (triggers rolling update)
+kubectl set image deployment/${DEPLOYMENT_NAME} \
+  ${DEPLOYMENT_NAME}="${IMAGE_VERSIONED}"
+
+# Wait for rollout to complete
+echo "Waiting for rollout to complete..."
+kubectl rollout status deployment/${DEPLOYMENT_NAME} --timeout=5m
+
+if [ $? -eq 0 ]; then
+  echo "Deployment successful! Version: ${VERSION_TAG}"
+  kubectl get deployment ${DEPLOYMENT_NAME}
+  echo "To rollback: kubectl rollout undo deployment/${DEPLOYMENT_NAME}"
+else
+  echo "Deployment failed. Rolling back..."
+  kubectl rollout undo deployment/${DEPLOYMENT_NAME}
+  exit 1
+fi

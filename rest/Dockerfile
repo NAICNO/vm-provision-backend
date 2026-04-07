@@ -53,9 +53,6 @@ RUN corepack enable && \
 # Copy built application from builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Copy environment file
-COPY .env.production .env.production
-
 # Copy prisma files if needed at runtime
 COPY --from=builder /usr/src/app/prisma ./prisma
 

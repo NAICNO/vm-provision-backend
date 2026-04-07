@@ -31,6 +31,8 @@ spec:
                 secretKeyRef:
                   name: rabbitmq-secret
                   key: password
+            - name: TERRAFORM_RUNNER_IMAGE
+              value: "<your-docker-registry>/terraform-runner:latest"
           volumeMounts:
             - name: terraform-volume
               mountPath: /data

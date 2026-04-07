@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node'
 import { Message, MessagePublishStatus, PrismaClient } from '@prisma/client'
 import { ITXClientDenyList } from '@prisma/client/runtime/library'
 
@@ -19,14 +18,10 @@ export const publishMessage = async (queueName: string, message: Message) => {
         await markMessageAsPublished(message.messageId)
       } else {
         await markMessageAsFailed(message.messageId)
-        Sentry.captureException(new Error('Send to queue returned false'),
-          {
-            contexts: {rabbitmq: {message: 'Error in publishing message'}}
-          })
+        logger.error({message: 'Send to queue returned false'})
       }
     } catch (error) {
       logger.error({message: 'Failed to send message:', error})
-      Sentry.captureException(error, {contexts: {rabbitmq: {message: 'Error in publishing message'}}})
       await markMessageAsFailed(message.messageId)
     }
   } else {

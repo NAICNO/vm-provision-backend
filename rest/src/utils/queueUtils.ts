@@ -1,5 +1,4 @@
 import * as amqp from 'amqplib'
-import * as Sentry from '@sentry/node'
 import * as MessageQueueService from '../services/messageQueueService'
 import logger from './logger'
 import { ChannelModel } from 'amqplib'
@@ -30,7 +29,6 @@ export async function connectToRabbitMQ() {
     await MessageQueueService.publishAllPendingMessages()
   } catch (error) {
     logger.error({message: 'Failed to connect to RabbitMQ', error})
-    Sentry.captureException(error, {contexts: {rabbitmq: {message: 'Failed to connect to RabbitMQ'}}})
   }
 }
 

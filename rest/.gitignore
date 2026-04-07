@@ -192,13 +192,8 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-.env.dev.deploy
-.env.development.local
-.env.test.local
-.env.prod
-.env.production.local
-.env.development
-.env-backup
+.env*
+!.env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -258,9 +253,4 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
-# End of https://www.toptal.com/developers/gitignore/api/intellij,node
-# Sentry Config File
-.sentryclirc
 
-# Sentry Config File
-.sentryclirc

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node'
 import {
   Message,
   Prisma,
@@ -88,14 +87,7 @@ export const getProviderById = async (providerId: string) => {
     })
   } catch (e) {
     const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmTemplateId: providerId,
-          message: 'VM Provider not found'
-        }
-      }
-    })
+    logger.error({message: 'VM Provider not found', providerId})
     throw error
   }
 }
@@ -120,14 +112,7 @@ export const getVmTemplateById = async (templateId: string) => {
     })
   } catch (e) {
     const error = new Error(ErrorMessages.InternalServerError)
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmTemplateId: templateId,
-          message: 'VM template not found'
-        }
-      }
-    })
+    logger.error({message: 'VM template not found', templateId})
     throw error
   }
 }
@@ -224,14 +209,7 @@ export const startVmProvisioning = async (userId: string | undefined, vmName: st
     return virtualMachine.vmId
 
   } catch (error) {
-    Sentry.captureException(error, {
-      contexts: {
-        message: {
-          vmTemplateId: vmTemplateId,
-          message: 'Failed to publish create VM request'
-        }
-      }
-    })
+    logger.error({message: 'Failed to publish create VM request', vmTemplateId, error})
     throw new Error(ErrorMessages.CannotCreateVmDueToServerError)
   }
 }
