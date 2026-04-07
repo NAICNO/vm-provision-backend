@@ -9,8 +9,9 @@ Backend services for the NAIC VM Provisioning platform. Orchestrates Terraform-b
 ```mermaid
 flowchart TD
     User([User]) --> REST[REST API]
+    REST --> OIDC[OIDC Provider]
     REST --> PG[(PostgreSQL)]
-    REST --> Redis[(Redis)]
+    REST --> Redis[(Redis Sessions)]
     REST -- publish request --> RMQ[(RabbitMQ)]
 
     RMQ -- vm_provisioning_requests --> RC[Request Consumer]
