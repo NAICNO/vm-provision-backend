@@ -1,5 +1,8 @@
 # VM Provisioning - Backend
 
+[![DOI](https://zenodo.org/badge/706207130.svg)](https://doi.org/10.5281/zenodo.19454574)
+
+
 Backend services for the NAIC VM Provisioning platform. Orchestrates Terraform-based infrastructure provisioning across multiple cloud providers via a microservices architecture deployed on Kubernetes.
 
 **Frontend:** [NAICNO/vm-provision-frontend](https://github.com/NAICNO/vm-provision-frontend)
