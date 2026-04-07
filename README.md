@@ -7,15 +7,20 @@ Backend services for the NAIC VM Provisioning platform. Orchestrates Terraform-b
 ## Architecture
 
 ```mermaid
-flowchart LR
-    User([User Request]) --> REST[REST API]
-    REST --> RMQ[(RabbitMQ)]
-    RMQ --> RC[Request Consumer]
-    RC --> TF[K8s Terraform Job]
-    TF --> RMQ2[(RabbitMQ)]
-    RMQ2 --> LC[Log Consumer]
-    LC --> REST2[REST API]
-    REST2 --> DB[(DB + Socket.IO)]
+flowchart TD
+    User([User]) --> REST[REST API]
+    REST --> PG[(PostgreSQL)]
+    REST --> Redis[(Redis)]
+    REST -- publish request --> RMQ[(RabbitMQ)]
+
+    RMQ -- vm_provisioning_requests --> RC[Request Consumer]
+    RC -- create K8s Job --> TF[Terraform Runner]
+
+    TF -- vm_provisioning_progress --> RMQ
+    RMQ -- vm_provisioning_progress --> LC[Log Consumer]
+    LC -- POST /api/message/process --> REST
+
+    REST -- Socket.IO --> User
 ```
 
 ### Components

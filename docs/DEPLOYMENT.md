@@ -25,7 +25,7 @@ Manifests are in `gcp/gke/`. Update the container image references in the deploy
 ```mermaid
 flowchart TD
     LB([LoadBalancer :80]) --> REST["REST Backend
-    3 replicas, port 3000"]
+    2 replicas, port 3000"]
     REST --> PG[("PostgreSQL
     port 5432")]
     REST --> RD[("Redis
@@ -97,7 +97,7 @@ kubectl apply -f provision-request-queue-consumer-deployments.yaml
 
 | File | Resource | Description |
 |------|----------|-------------|
-| `rest-backend-deployment.yaml` | Deployment | REST API — 3 replicas, rolling updates, health/readiness probes |
+| `rest-backend-deployment.yaml` | Deployment | REST API — 2 replicas, rolling updates, health/readiness probes |
 | `rest-service.yaml` | Service (LoadBalancer) | Exposes REST API on port 80 with session affinity |
 | `provision-log-queue-consumer-deployment.yaml` | Deployment | Consumes Terraform logs from RabbitMQ |
 | `provision-request-queue-consumer-deployments.yaml` | Deployment | Consumes provisioning requests, spawns Terraform K8s jobs |
